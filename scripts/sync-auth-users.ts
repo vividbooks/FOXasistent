@@ -3,6 +3,7 @@
  *
  *   node --env-file=.env ./node_modules/tsx/dist/cli.mjs scripts/sync-auth-users.ts
  */
+import { syntheticAuthEmail } from "../lib/auth-email-local";
 import { prisma } from "../lib/prisma";
 import { provisionSupabaseAuthForUserById } from "../lib/sync-supabase-auth-for-user";
 
@@ -11,7 +12,7 @@ async function main() {
   for (const u of users) {
     const r = await provisionSupabaseAuthForUserById(u.id);
     if (r.ok) {
-      console.log("OK:", u.username, "→", `${u.username}@fox-app.local`);
+      console.log("OK:", u.username, "→", syntheticAuthEmail(u.username));
     } else {
       console.error("Chyba:", u.username, r.error);
     }

@@ -1,5 +1,8 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.49.1";
 
+/** Musí odpovídat `GEMINI_RECEIPT_MODEL_ID` v lib/gemini-model.ts (Next.js). */
+const GEMINI_RECEIPT_MODEL_ID = "gemini-2.5-flash";
+
 const corsHeaders: Record<string, string> = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Headers":
@@ -116,10 +119,9 @@ Deno.serve(async (req) => {
   const mimeType = mimeFromFile(file, nameLower);
   const buf = new Uint8Array(await file.arrayBuffer());
   const b64 = bytesToBase64(buf);
-  const model = Deno.env.get("GEMINI_MODEL")?.trim() || "gemini-2.0-flash";
 
   const geminiUrl =
-    `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${encodeURIComponent(geminiKey)}`;
+    `https://generativelanguage.googleapis.com/v1beta/models/${GEMINI_RECEIPT_MODEL_ID}:generateContent?key=${encodeURIComponent(geminiKey)}`;
 
   const geminiRes = await fetch(geminiUrl, {
     method: "POST",

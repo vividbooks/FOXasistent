@@ -1,9 +1,15 @@
 import react from "@vitejs/plugin-react";
+import path from "node:path";
 import { defineConfig } from "vite";
 import { viteStaticCopy } from "vite-plugin-static-copy";
 
 // GitHub Pages: vividbooks.github.io/FOXasistent/
 export default defineConfig({
+  resolve: {
+    alias: {
+      "@foxasistent/lib": path.resolve(__dirname, "../lib"),
+    },
+  },
   server: {
     fs: { allow: [".."] },
   },

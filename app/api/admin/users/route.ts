@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { auth } from "@/auth";
+import { slugifyForAuthEmail } from "@/lib/auth-email-local";
 import { prisma } from "@/lib/prisma";
 import { provisionSupabaseAuthForUserById } from "@/lib/sync-supabase-auth-for-user";
 import bcrypt from "bcryptjs";
@@ -49,6 +50,18 @@ export async function POST(req: Request) {
   const exists = await prisma.user.findUnique({ where: { username } });
   if (exists) {
     return NextResponse.json({ error: "Uživatel už existuje" }, { status: 400 });
+  }
+
+  const authLocal = slugifyForAuthEmail(username);
+  const others = await prisma.user.findMany({ select: { username: true } });
+  if (others.some((row) => slugifyForAuthEmail(row.username) === authLocal)) {
+    return NextResponse.json(
+      {
+        error:
+          "Účet se stejným přihlášením na GitHub Pages už existuje (stejný tvar po odstranění diakritiky).",
+      },
+      { status: 400 },
+    );
   }
 
   const passwordHash = await bcrypt.hash(parsed.data.password, 10);

@@ -5,7 +5,8 @@ import { prisma } from "@/lib/prisma";
 import { provisionSupabaseAuthForUserById } from "@/lib/sync-supabase-auth-for-user";
 
 const bodySchema = z.object({
-  userId: z.string().uuid(),
+  /** Prisma User.id (cuid z Vercelu nebo UUID ze statické admin SPA). */
+  userId: z.string().min(1).max(128),
 });
 
 function withCors(res: NextResponse, req: Request): NextResponse {

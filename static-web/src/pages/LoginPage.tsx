@@ -1,6 +1,7 @@
 import { useState, type FormEvent } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "../auth/AuthContext";
+import { syntheticAuthEmail } from "@foxasistent/lib/auth-email-local";
 import { supabase, supabaseConfigured } from "../lib/supabase";
 
 export default function LoginPage() {
@@ -23,7 +24,7 @@ export default function LoginPage() {
     const password = String(fd.get("p") || "");
     if (!username || !password) return;
     setBusy(true);
-    const email = `${username}@fox-app.local`;
+    const email = syntheticAuthEmail(username);
     const { error } = await supabase.auth.signInWithPassword({ email, password });
     setBusy(false);
     if (error) {

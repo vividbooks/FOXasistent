@@ -10,6 +10,7 @@ import {
   type Summary,
   type UserRow,
 } from "../data/queries";
+import { slugifyForAuthEmail } from "@foxasistent/lib/auth-email-local";
 import { formatKc } from "../lib/money";
 import type { Period } from "../lib/ranges";
 import bcrypt from "bcryptjs";
@@ -240,6 +241,16 @@ function NewEmployeeForm({
       const { data: dup } = await supabase.from("User").select("id").eq("username", login).maybeSingle();
       if (dup) {
         setErr("Uživatel už existuje.");
+        setBusy(false);
+        return;
+      }
+      const authLocal = slugifyForAuthEmail(login);
+      const { data: nameRows, error: namesErr } = await supabase.from("User").select("username");
+      if (namesErr) throw new Error(namesErr.message);
+      if (nameRows?.some((r) => slugifyForAuthEmail(r.username) === authLocal)) {
+        setErr(
+          "Účet se stejným přihlášením na GitHub Pages už existuje (stejný tvar po odstranění diakritiky).",
+        );
         setBusy(false);
         return;
       }

@@ -1,3 +1,4 @@
+import { syntheticAuthEmail } from "@/lib/auth-email-local";
 import { createSupabaseAdmin } from "@/lib/supabase/admin";
 import { prisma } from "@/lib/prisma";
 
@@ -6,7 +7,7 @@ export type ProvisionResult =
   | { ok: false; error: string };
 
 /**
- * Zajistí záznam v Supabase Auth (email username@fox-app.local) a propojí authUserId v User.
+ * Zajistí záznam v Supabase Auth (syntetický e-mail přes syntheticAuthEmail) a propojí authUserId v User.
  * Stejná logika jako dřívější npm run sync-auth, ale pro jednoho uživatele.
  */
 export async function provisionSupabaseAuthForUserById(
@@ -19,10 +20,11 @@ export async function provisionSupabaseAuthForUserById(
 
   const supabase = createSupabaseAdmin();
   const shared = process.env.FOX_SHARED_PASSWORD?.trim() || "zmen-mne";
-  const email = `${u.username}@fox-app.local`;
+  const email = syntheticAuthEmail(u.username);
 
   if (u.authUserId) {
     const { error } = await supabase.auth.admin.updateUserById(u.authUserId, {
+      email,
       password: shared,
       user_metadata: { app_user_id: u.id, role: u.role, name: u.name },
     });

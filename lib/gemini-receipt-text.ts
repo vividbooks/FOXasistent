@@ -1,4 +1,5 @@
 import { GoogleGenerativeAI } from "@google/generative-ai";
+import { GEMINI_RECEIPT_MODEL_ID } from "./gemini-model";
 
 const RECEIPT_OCR_PROMPT = `Jsi OCR pro české účtenky, paragony a faktury.
 Přepiš veškerý viditelný text z přiloženého obrázku nebo PDF.
@@ -40,11 +41,10 @@ export async function extractReceiptTextWithGemini(
 
   const nameLower = file.name.toLowerCase();
   const mimeType = resolveMime(file, nameLower);
-  const modelName = process.env.GEMINI_MODEL?.trim() || "gemini-2.0-flash";
 
   const genAI = new GoogleGenerativeAI(key);
   const model = genAI.getGenerativeModel({
-    model: modelName,
+    model: GEMINI_RECEIPT_MODEL_ID,
     generationConfig: {
       maxOutputTokens: 8192,
       temperature: 0.05,
