@@ -37,7 +37,7 @@ Kontrola: otevři `https://TVOJE-APP.vercel.app/api/health` — má být `"ok":t
 
 1. **`base`** v [`static-web/vite.config.ts`](static-web/vite.config.ts) musí odpovídat názvu repa (teď `/FOXasistent/`).
 2. **Settings → Pages** → zdroj **GitHub Actions**.
-3. Konfigurace Supabase pro build: [`static-web/.env.production`](static-web/.env.production) (`VITE_SUPABASE_*`).
+3. Konfigurace pro build: [`static-web/.env.production`](static-web/.env.production) — `VITE_SUPABASE_*` a pro **stejné OCR jako na localhostu** doplněný **`VITE_EXTRACT_API_BASE`** = kořen URL tvé Next aplikace na Vercelu (bez `/` na konci), např. `https://fox-xxx.vercel.app`. API `/api/extract-document` musí běžet na Vercelu (CORS + ověření přes Supabase Bearer token je v kódu). V GitHub Actions můžeš místo úpravy souboru nastavit repository secret **`VITE_EXTRACT_API_BASE`** (stejná hodnota jako výše).
 
 ### Databáze, RLS, Auth
 

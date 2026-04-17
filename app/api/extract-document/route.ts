@@ -1,7 +1,9 @@
 import { auth } from "@/auth";
+import { extractDocumentCorsHeaders } from "@/lib/extract-cors";
 import { buildOcrPngCandidates } from "@/lib/image-for-ocr";
 import { sniffLikelyRasterImage } from "@/lib/image-sniff";
 import { isAllowedReceiptUpload } from "@/lib/receipt-upload-formats";
+import { createSupabaseAdmin } from "@/lib/supabase/admin";
 import { NextResponse } from "next/server";
 
 export const runtime = "nodejs";
@@ -110,20 +112,67 @@ async function extractPdfText(buf: Buffer): Promise<{
   }
 }
 
-export async function POST(req: Request) {
-  const session = await auth();
-  if (!session?.user?.id) {
-    return NextResponse.json({ error: "Nepřihlášeno" }, { status: 401 });
+function withCors(req: Request, res: NextResponse) {
+  const h = extractDocumentCorsHeaders(req);
+  for (const [k, v] of Object.entries(h)) {
+    res.headers.set(k, v);
   }
+  return res;
+}
+
+/** Předvolba prohlížeče před POST z jiné domény (GitHub Pages). */
+export async function OPTIONS(req: Request) {
+  return withCors(req, new NextResponse(null, { status: 204 }));
+}
+
+async function assertExtractAuthorized(req: Request): Promise<NextResponse | null> {
+  const nextSession = await auth();
+  if (nextSession?.user?.id) return null;
+
+  const authz = req.headers.get("authorization");
+  const m = authz?.match(/^Bearer\s+(.+)$/i);
+  if (!m) {
+    return withCors(
+      req,
+      NextResponse.json({ error: "Nepřihlášeno" }, { status: 401 }),
+    );
+  }
+  try {
+    const supabase = createSupabaseAdmin();
+    const {
+      data: { user },
+      error,
+    } = await supabase.auth.getUser(m[1]);
+    if (error || !user) {
+      return withCors(
+        req,
+        NextResponse.json({ error: "Nepřihlášeno" }, { status: 401 }),
+      );
+    }
+    return null;
+  } catch {
+    return withCors(
+      req,
+      NextResponse.json({ error: "Nepřihlášeno" }, { status: 401 }),
+    );
+  }
+}
+
+export async function POST(req: Request) {
+  const deny = await assertExtractAuthorized(req);
+  if (deny) return deny;
 
   const formData = await req.formData();
   const file = formData.get("file") as File | null;
   if (!file || file.size === 0) {
-    return NextResponse.json({ error: "Chybí soubor" }, { status: 400 });
+    return withCors(req, NextResponse.json({ error: "Chybí soubor" }, { status: 400 }));
   }
 
   if (file.size > 12 * 1024 * 1024) {
-    return NextResponse.json({ error: "Soubor je příliš velký" }, { status: 400 });
+    return withCors(
+      req,
+      NextResponse.json({ error: "Soubor je příliš velký" }, { status: 400 }),
+    );
   }
 
   const name = file.name.toLowerCase();
@@ -133,31 +182,40 @@ export async function POST(req: Request) {
     if (isPdf(file, name)) {
       const { text, hint, pageCount } = await extractPdfText(buf);
       if (!text) {
-        return NextResponse.json({
-          text: "",
-          hint:
-            hint ??
-            "V PDF nebyl nalezen text — jde pravděpodobně o sken. Nahrajte prosím účtenku jako fotku (JPG), aby šla přečíst OCR.",
-          pageCount,
-        });
+        return withCors(
+          req,
+          NextResponse.json({
+            text: "",
+            hint:
+              hint ??
+              "V PDF nebyl nalezen text — jde pravděpodobně o sken. Nahrajte prosím účtenku jako fotku (JPG), aby šla přečíst OCR.",
+            pageCount,
+          }),
+        );
       }
-      return NextResponse.json({ text, hint, pageCount });
+      return withCors(req, NextResponse.json({ text, hint, pageCount }));
     }
 
     if (!isAllowedReceiptUpload(file) && !sniffLikelyRasterImage(buf)) {
-      return NextResponse.json({ error: "Nepodporovaný typ souboru" }, { status: 400 });
+      return withCors(
+        req,
+        NextResponse.json({ error: "Nepodporovaný typ souboru" }, { status: 400 }),
+      );
     }
 
     let pngs: Buffer[];
     try {
       pngs = await buildOcrPngCandidates(buf);
     } catch {
-      return NextResponse.json(
-        {
-          error:
-            "Obrázek se nepodařilo načíst (zkuste JPG/PNG nebo jiný telefon může ukládat HEIC — mělo by to projít, jinak uložte jako JPEG).",
-        },
-        { status: 400 },
+      return withCors(
+        req,
+        NextResponse.json(
+          {
+            error:
+              "Obrázek se nepodařilo načíst (zkuste JPG/PNG nebo jiný telefon může ukládat HEIC — mělo by to projít, jinak uložte jako JPEG).",
+          },
+          { status: 400 },
+        ),
       );
     }
 
@@ -174,20 +232,26 @@ export async function POST(req: Request) {
         const t = (text || "").trim();
         if (t.length > best.length) best = t;
       }
-      return NextResponse.json({
-        text: best,
-        hint: best
-          ? undefined
-          : "Text se nepodařilo spolehlivě přečíst — zkuste ostřejší fotku, větší kontrast nebo lepší osvětlení.",
-      });
+      return withCors(
+        req,
+        NextResponse.json({
+          text: best,
+          hint: best
+            ? undefined
+            : "Text se nepodařilo spolehlivě přečíst — zkuste ostřejší fotku, větší kontrast nebo lepší osvětlení.",
+        }),
+      );
     } finally {
       await worker.terminate();
     }
   } catch (e) {
     console.error("extract-document", e);
-    return NextResponse.json(
-      { error: "Čtení dokumentu selhalo. Zkuste jiný soubor nebo menší velikost." },
-      { status: 500 },
+    return withCors(
+      req,
+      NextResponse.json(
+        { error: "Čtení dokumentu selhalo. Zkuste jiný soubor nebo menší velikost." },
+        { status: 500 },
+      ),
     );
   }
 }

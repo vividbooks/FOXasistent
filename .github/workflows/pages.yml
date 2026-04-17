@@ -30,6 +30,9 @@ jobs:
           cache-dependency-path: static-web/package-lock.json
       - name: Install & build static site
         working-directory: static-web
+        env:
+          # Volitelně: Repository secret — URL Next na Vercelu pro OCR (bez koncového /)
+          VITE_EXTRACT_API_BASE: ${{ secrets.VITE_EXTRACT_API_BASE }}
         run: |
           npm ci
           npm run build
