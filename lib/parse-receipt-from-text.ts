@@ -57,7 +57,58 @@ function isInvoiceTableHeaderLine(line: string): boolean {
 
 /** Typický začátek řádku položky faktury: pořadí + kód zboží + množství. */
 function looksLikeInvoiceLineItem(line: string): boolean {
-  return /^\d{1,3}\s+\d{4,14}\s+\d+[,.]?\d*\s+\S/i.test(line);
+  return /^\d{1,3}\s+\d{3,16}\s+\d+[,.]?\d*\s+\S/i.test(line);
+}
+
+/**
+ * PDF často vrátí více řádků tabulky v jednom řetězci. Najdeme začátky „pořadí + kód (4+) + množství“
+ * a řádky rozdělíme (hranice = další takový začátek).
+ */
+function splitConcatenatedInvoiceRows(line: string): string[] {
+  const re = /(\d{1,3})\s+(\d{4,16})\s+(\d+[,.]?\d*)\s+/g;
+  const hits: number[] = [];
+  let m: RegExpExecArray | null;
+  while ((m = re.exec(line)) !== null) {
+    hits.push(m.index);
+  }
+  if (hits.length <= 1) return [line.trim()].filter((s) => s.length > 0);
+
+  const parts: string[] = [];
+  for (let i = 0; i < hits.length; i++) {
+    const from = hits[i];
+    const to = i + 1 < hits.length ? hits[i + 1]! : line.length;
+    const chunk = line.slice(from, to).trim();
+    if (chunk.length >= 10) parts.push(chunk);
+  }
+  return parts.length > 0 ? parts : [line.trim()];
+}
+
+/**
+ * Jedna řádka z PDF = hlavička tabulky + hned první položka — bez ořezu by celý řádek
+ * spadl do isInvoiceTableHeaderLine a nic by se neparsovalo.
+ */
+function trimLeadingInvoiceTableNoise(line: string): string {
+  const re = /(\d{1,3})\s+(\d{4,16})\s+(\d+[,.]?\d*)\s+/g;
+  const m = re.exec(line);
+  if (!m || m.index === undefined || m.index === 0) return line;
+  const head = line.slice(0, m.index).toLowerCase();
+  if (/zboží|cena\s+celkem|název|řádek|počet\s+mu/i.test(head)) {
+    return line.slice(m.index).trim();
+  }
+  return line;
+}
+
+/** Rozbalí dlouhé řádky z PDF na jednotlivé logické řádky tabulky. */
+function expandInvoicePhysicalLines(lines: string[]): string[] {
+  const out: string[] = [];
+  for (const line of lines) {
+    const t = trimLeadingInvoiceTableNoise(line.trim());
+    if (!t) continue;
+    const pieces = splitConcatenatedInvoiceRows(t);
+    if (pieces.length > 1) out.push(...pieces);
+    else out.push(t);
+  }
+  return out;
 }
 
 function detectInvoiceDoc(lines: string[]): boolean {
@@ -89,18 +140,19 @@ function invoiceLabelFromRest(rest: string): string {
  * Bere poslední částku na řádku jako „cena celkem“ řádku.
  */
 function parseInvoiceTableItems(lines: string[]): ReceiptItem[] {
+  const expanded = expandInvoicePhysicalLines(lines);
   const out: ReceiptItem[] = [];
-  for (const line of lines) {
+  for (const line of expanded) {
     if (out.length >= 40) break;
     const trimmed = line.trim();
-    if (trimmed.length < 12 || trimmed.length > 220) continue;
+    if (trimmed.length < 12 || trimmed.length > 8000) continue;
     if (isPageSubtotalLine(trimmed) || isInvoiceTableHeaderLine(trimmed)) continue;
     if (/celkem\s+k\s*úhradě|částka\s*k\s*úhradě|celková\s+částka|zaplatit|k\s+úhradě/i.test(trimmed))
       continue;
     if (!looksLikeInvoiceLineItem(trimmed)) continue;
 
     const m = trimmed.match(
-      /^(\d{1,3})\s+(\d{4,14})\s+(\d+[,.]?\d*)\s+(.+)$/i,
+      /^(\d{1,3})\s+(\d{3,16})\s+(\d+[,.]?\d*)\s+(.+)$/i,
     );
     if (!m) continue;
 
