@@ -47,12 +47,74 @@ function isPageSubtotalLine(line: string): boolean {
 }
 
 function isInvoiceTableHeaderLine(line: string): boolean {
-  return /řádek\s+číslo\s+zboží|cena\s+celkem\s+dph/i.test(line);
+  const l = line.toLowerCase();
+  if (/řádek\s+číslo\s+zboží|cena\s+celkem\s+dph/i.test(l)) return true;
+  if (/název\s+zboží/.test(l) && (/číslo|počet|cena|zákl|mj/i.test(l) || l.length > 40))
+    return true;
+  if (/^č\.?\s*řádku/i.test(l) && /zboží/i.test(l)) return true;
+  return false;
 }
 
-/** Typický řádek položky faktury (č. řádku + kód zboží + množství). */
+/** Typický začátek řádku položky faktury: pořadí + kód zboží + množství. */
 function looksLikeInvoiceLineItem(line: string): boolean {
-  return /^\d{1,3}\s+\d{5,7}\s+\d+[,.]?\d*\s+/i.test(line);
+  return /^\d{1,3}\s+\d{4,14}\s+\d+[,.]?\d*\s+\S/i.test(line);
+}
+
+function detectInvoiceDoc(lines: string[]): boolean {
+  const t = lines.join("\n").toLowerCase();
+  if (!/faktura|fa[ck]tura|daňový\s+doklad|danovy\s+doklad|objednávka/i.test(t)) {
+    return false;
+  }
+  return (
+    /makro|cash\s*[&＆]\s*carry|název\s+zboží|číslo\s+zboží|cena\s+celkem|zákl\.?\s*cena/i.test(
+      t,
+    ) || /\d{8,}\s+\d+[,.]?\d*\s+[a-záčďéěíňóřšťúůýž]/i.test(t)
+  );
+}
+
+/** Text položky = část řádku po množství až po první peněžní token. */
+function invoiceLabelFromRest(rest: string): string {
+  const re =
+    /(\d{1,3}(?:[ \u00a0]\d{3})*(?:,\d{1,2})?|\d+,\d{2})(?:\s*(?:Kč|Kc|CZK))?\s*/i;
+  const m = rest.match(re);
+  if (!m || m.index === undefined) {
+    return rest.replace(/\s+/g, " ").trim().slice(0, 72);
+  }
+  const label = rest.slice(0, m.index).replace(/\s+/g, " ").trim();
+  return label.length >= 2 ? label.slice(0, 72) : rest.replace(/\s+/g, " ").trim().slice(0, 72);
+}
+
+/**
+ * Řádky tabulky faktury (Makro, …): pořadí + interní kód + ks + název + sloupce s částkami.
+ * Bere poslední částku na řádku jako „cena celkem“ řádku.
+ */
+function parseInvoiceTableItems(lines: string[]): ReceiptItem[] {
+  const out: ReceiptItem[] = [];
+  for (const line of lines) {
+    if (out.length >= 40) break;
+    const trimmed = line.trim();
+    if (trimmed.length < 12 || trimmed.length > 220) continue;
+    if (isPageSubtotalLine(trimmed) || isInvoiceTableHeaderLine(trimmed)) continue;
+    if (/celkem\s+k\s*úhradě|částka\s+k\s*úhradě|celková\s+částka|zaplatit|k\s+úhradě/i.test(trimmed))
+      continue;
+    if (!looksLikeInvoiceLineItem(trimmed)) continue;
+
+    const m = trimmed.match(
+      /^(\d{1,3})\s+(\d{4,14})\s+(\d+[,.]?\d*)\s+(.+)$/i,
+    );
+    if (!m) continue;
+
+    const rest = m[4].trim();
+    const amountKc = lastMoneyOnLine(trimmed);
+    if (amountKc == null || amountKc <= 0 || amountKc > 250_000) continue;
+
+    let label = invoiceLabelFromRest(rest);
+    if (label.length < 2 || /^[\d\s.,]+$/.test(label)) continue;
+    if (/^mj|ks|kg|l\s*$/i.test(label)) continue;
+
+    out.push({ label, amountKc });
+  }
+  return out;
 }
 
 function extractDeclaredTotalKc(lines: string[]): number | null {
@@ -100,7 +162,7 @@ function extractDeclaredTotalKc(lines: string[]): number | null {
 }
 
 /**
- * Heuristika z OCR / PDF textu — české účtenky (název + cena na řádku).
+ * Heuristika z OCR / PDF textu — české účtenky (název + cena na řádku) + tabulky faktur.
  */
 export function parseReceiptFromText(text: string): ParsedReceipt {
   const items: ReceiptItem[] = [];
@@ -124,6 +186,7 @@ export function parseReceiptFromText(text: string): ParsedReceipt {
   for (const line of lines) {
     if (items.length >= 28) break;
     if (line.length > 88) continue;
+    if (looksLikeInvoiceLineItem(line)) continue;
     if (headerLike.test(line)) continue;
     if (skipLine.test(line)) continue;
 
@@ -142,11 +205,22 @@ export function parseReceiptFromText(text: string): ParsedReceipt {
     items.push({ label, amountKc });
   }
 
+  const invoiceItems = parseInvoiceTableItems(lines);
+  const isInv = detectInvoiceDoc(lines);
+  let merged: ReceiptItem[];
+  if (isInv && invoiceItems.length > 0) {
+    merged = invoiceItems;
+  } else if (items.length > 0) {
+    merged = items;
+  } else {
+    merged = invoiceItems;
+  }
+
   const declaredTotalKc = extractDeclaredTotalKc(lines);
 
-  const lineSumKc = items.length ? items.reduce((s, i) => s + i.amountKc, 0) : null;
+  const lineSumKc = merged.length ? merged.reduce((s, i) => s + i.amountKc, 0) : null;
 
-  return { items, lineSumKc, declaredTotalKc };
+  return { items: merged, lineSumKc, declaredTotalKc };
 }
 
 /** Nejlepší odhad „konečné“ částky z parseru (deklarované celkem > součet řádků). */
