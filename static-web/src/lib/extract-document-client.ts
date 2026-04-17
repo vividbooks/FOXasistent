@@ -160,9 +160,8 @@ async function extractPdfClient(file: File): Promise<{
       const canvas = document.createElement("canvas");
       canvas.width = viewport.width;
       canvas.height = viewport.height;
-      const ctx = canvas.getContext("2d");
-      if (!ctx) continue;
-      await page.render({ canvasContext: ctx, viewport }).promise;
+      if (!canvas.getContext("2d")) continue;
+      await page.render({ canvas, viewport }).promise;
       const best = await ocrImageBest(worker, canvas);
       if (best) ocrByPage.set(pageNum, best);
     }

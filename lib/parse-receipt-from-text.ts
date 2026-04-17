@@ -95,7 +95,7 @@ function parseInvoiceTableItems(lines: string[]): ReceiptItem[] {
     const trimmed = line.trim();
     if (trimmed.length < 12 || trimmed.length > 220) continue;
     if (isPageSubtotalLine(trimmed) || isInvoiceTableHeaderLine(trimmed)) continue;
-    if (/celkem\s+k\s*úhradě|částka\s+k\s*úhradě|celková\s+částka|zaplatit|k\s+úhradě/i.test(trimmed))
+    if (/celkem\s+k\s*úhradě|částka\s*k\s*úhradě|celková\s+částka|zaplatit|k\s+úhradě/i.test(trimmed))
       continue;
     if (!looksLikeInvoiceLineItem(trimmed)) continue;
 
