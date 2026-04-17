@@ -27,23 +27,26 @@ npm run dev
 
 Kontrola: otevři `https://TVOJE-APP.vercel.app/api/health` — má být `"ok":true` a `"users"` alespoň 1.
 
-## GitHub Pages (statická přihláška)
+## GitHub Pages (hlavní appka pro kámoše)
 
-Plná Next.js aplikace na Pages nejde (žádný Node server). V repu je **`static-web/`** (Vite): po buildu se výstup píše do **`docs/`** a workflow [`.github/workflows/pages.yml`](.github/workflows/pages.yml) ho nasadí na Pages.
+**`static-web/`** je **React + Vite SPA** napojená přímo na **Supabase** (Auth, Postgres, Storage): směny, poloha, náklady, účtenky (nahrání souboru), admin přehled, tým, sdílené účty (`TeamCredential`). Build jde do **`docs/`**, deploy řeší [`.github/workflows/pages.yml`](.github/workflows/pages.yml).
+
+**Next.js v kořeni** zůstává volitelný (např. OCR účtenek přes server `/api/extract-document` — ve statické verzi zatím zadej částku ručně).
 
 ### Jednorázově na GitHubu
 
-1. **Název repozitáře** musí sedět s `base` v [`static-web/vite.config.ts`](static-web/vite.config.ts) (teď `/FOXasistent/`). Jinak uprav `base` na `/<tvůj-repo>/`.
-2. V **Settings → Pages** nastav zdroj **GitHub Actions** (ne „Deploy from branch“). Při prvním deployi může GitHub chtít jednorázové schválení prostředí `github-pages`.
-3. **Bez ručního zadávání Secrets:** veřejný Supabase URL a publishable klíč jsou v [`static-web/.env.production`](static-web/.env.production) (stejně by stejně končily v prohlížeči). Po pushi na `main` workflow sestaví `static-web/` a nasadí `docs/`.
+1. **`base`** v [`static-web/vite.config.ts`](static-web/vite.config.ts) musí odpovídat názvu repa (teď `/FOXasistent/`).
+2. **Settings → Pages** → zdroj **GitHub Actions**.
+3. Konfigurace Supabase pro build: [`static-web/.env.production`](static-web/.env.production) (`VITE_SUPABASE_*`).
 
-### Databáze a Supabase Auth
+### Databáze, RLS, Auth
 
-1. `npx prisma migrate deploy` (sloupec `User.authUserId`).
-2. Jednou **`npm run sync-auth`** (lokálně s `.env`: DB + service role + `FOX_SHARED_PASSWORD`) — vytvoří Auth uživatele `jméno@fox-app.local` a doplní `authUserId`.
-3. Na Pages: přihlášení **jménem** (`admin` / `jan`) a **`FOX_SHARED_PASSWORD`**.
+1. `npx prisma migrate deploy` — včetně RLS na `User`, `Expense`, `Shift`, `LocationPing` (JWT `user_metadata.app_user_id` + `role`).
+2. **`npm run sync-auth`** — Auth uživatelé `jméno@fox-app.local` + `authUserId` v `User`.
+3. Pokud **nahrávání do bucketu `receipts`** z prohlížeče hlásí RLS, spusť v Supabase SQL Editoru [`supabase/storage-receipts-spa.sql`](supabase/storage-receipts-spa.sql).
+4. Přihlášení na Pages: **uživatelské jméno** + **`FOX_SHARED_PASSWORD`**. Po přidání zaměstnance v admin rozhraní znovu **`npm run sync-auth`**, ať má účet v Supabase Auth.
 
-Úplná funkcionalita (účtenky, API) zatím zůstává na **Vercelu**; Pages verze je vstup přes Supabase Auth.
+Adresa: `https://<uživatel>.github.io/FOXasistent/#/login` (hash routing kvůli GitHub Pages).
 
 ### Účty a hesla (sdílená tabulka)
 
