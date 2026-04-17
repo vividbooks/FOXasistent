@@ -28,7 +28,7 @@ V Storage vytvořte veřejný bucket **`receipts`** (viz `fox-catering/.env.exam
 
 Na [GitHub Pages](https://pages.github.com/) je ze složky `docs/` statická stránka. **Next.js aplikaci** na Pages spustit nejde — běží na Vercelu (nebo jiném Node hostu).
 
-**Přesměrování z `github.io`:** `docs/index.html` hned přesměruje na **`https://fox-catering.vercel.app`**. Při importu do Vercelu nastav **název projektu `fox-catering`** (nebo uprav URL v `docs/index.html`). Bez nasazení na Vercel tato adresa zobrazí 404 — to je očekávané, dokud projekt jednou nenasadíš.
+**Přesměrování z `github.io`:** `docs/index.html` přesměruje na produkční Vercel URL (aktuálně **`https://project-dusf9.vercel.app`**). Po přejmenování projektu ve Vercelu uprav URL v `docs/index.html` a pushni znovu.
 
 **Po prvním pushi:** *Settings → Pages → Build and deployment → Source: GitHub Actions*.
 
