@@ -32,10 +32,11 @@ export async function uploadReceiptToSupabase(opts: {
   buffer: Buffer;
 }): Promise<string> {
   const supabase = createSupabaseAdmin();
+  const bucket = storageBucketId();
   const path = `receipt-${opts.expenseId}${opts.extWithDot}`;
   const contentType = contentTypeForUpload(opts.mime, opts.extWithDot.toLowerCase());
 
-  const { error } = await supabase.storage.from(BUCKET).upload(path, opts.buffer, {
+  const { error } = await supabase.storage.from(bucket).upload(path, opts.buffer, {
     contentType,
     upsert: false,
   });
