@@ -16,7 +16,7 @@ export default function LoginPage() {
     setError(null);
     setLoading(true);
     const res = await signIn("credentials", {
-      username: username.trim(),
+      username: username.trim().toLowerCase(),
       password,
       redirect: false,
     });
@@ -36,7 +36,13 @@ export default function LoginPage() {
           FOX Catering
         </h1>
         <p className="mt-1 text-center text-sm text-zinc-500">Přihlášení</p>
-        <form onSubmit={onSubmit} className="mt-8 space-y-4">
+        <p className="mt-3 text-center text-xs leading-relaxed text-zinc-400">
+          <strong>admin</strong> — heslo je tvoje <code className="text-zinc-500">ADMIN_PASSWORD</code> z
+          prostředí; po jeho změně spusť lokálně{" "}
+          <code className="text-zinc-500">npx prisma db seed</code>. Nebo{" "}
+          <strong>jan</strong> / <strong>demo123</strong>.
+        </p>
+        <form onSubmit={onSubmit} className="mt-6 space-y-4">
           <div>
             <label className="block text-sm font-medium text-zinc-700">
               Uživatelské jméno

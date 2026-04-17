@@ -20,20 +20,26 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
         const password = credentials?.password as string | undefined;
         if (!username?.trim() || !password) return null;
 
-        const user = await prisma.user.findUnique({
-          where: { username: username.trim().toLowerCase() },
-        });
-        if (!user) return null;
+        const login = username.trim().toLowerCase();
+        try {
+          const user = await prisma.user.findUnique({
+            where: { username: login },
+          });
+          if (!user) return null;
 
-        const ok = await bcrypt.compare(password, user.passwordHash);
-        if (!ok) return null;
+          const ok = await bcrypt.compare(password, user.passwordHash);
+          if (!ok) return null;
 
-        return {
-          id: user.id,
-          name: user.name,
-          email: `${user.id}@user.local`,
-          role: user.role,
-        };
+          return {
+            id: user.id,
+            name: user.name,
+            email: `${user.id}@user.local`,
+            role: user.role,
+          };
+        } catch (e) {
+          console.error("authorize / prisma:", e);
+          return null;
+        }
       },
     }),
   ],
