@@ -5,6 +5,8 @@ export default auth((req) => {
   const { pathname } = req.nextUrl;
   const logged = !!req.auth;
   const role = req.auth?.user?.role;
+  const isAdmin = role === "ADMIN";
+  const isEmployee = role === "EMPLOYEE";
 
   if (pathname.startsWith("/api/auth")) {
     return NextResponse.next();
@@ -15,22 +17,32 @@ export default auth((req) => {
     return NextResponse.redirect(new URL("/login", req.nextUrl));
   }
 
+  // JWT bez role (např. špatný AUTH_SECRET na serveru) — nepingpongovat admin ↔ employee
+  if (!isAdmin && !isEmployee) {
+    if (pathname === "/login") return NextResponse.next();
+    return NextResponse.redirect(new URL("/login", req.nextUrl));
+  }
+
   if (pathname === "/login") {
-    const dest = role === "ADMIN" ? "/admin" : "/employee";
+    const dest = isAdmin ? "/admin" : "/employee";
     return NextResponse.redirect(new URL(dest, req.nextUrl));
   }
 
   if (pathname === "/") {
-    const dest = role === "ADMIN" ? "/admin" : "/employee";
+    const dest = isAdmin ? "/admin" : "/employee";
     return NextResponse.redirect(new URL(dest, req.nextUrl));
   }
 
-  if (pathname.startsWith("/admin") && role !== "ADMIN") {
-    return NextResponse.redirect(new URL("/employee", req.nextUrl));
+  if (pathname.startsWith("/admin") && !isAdmin) {
+    return NextResponse.redirect(
+      new URL(isEmployee ? "/employee" : "/login", req.nextUrl),
+    );
   }
 
-  if (pathname.startsWith("/employee") && role !== "EMPLOYEE") {
-    return NextResponse.redirect(new URL("/admin", req.nextUrl));
+  if (pathname.startsWith("/employee") && !isEmployee) {
+    return NextResponse.redirect(
+      new URL(isAdmin ? "/admin" : "/login", req.nextUrl),
+    );
   }
 
   return NextResponse.next();
