@@ -47,4 +47,4 @@ Plná Next.js aplikace na Pages nejde (žádný Node server). V repu je **`stati
 
 ### Účty a hesla (sdílená tabulka)
 
-V Postgresu je tabulka **`TeamCredential`** (Prisma model stejného jména): název služby, login, heslo (plain text — interní), URL, poznámka. **RLS** povoluje SELECT/INSERT/UPDATE/DELETE jen roli `authenticated` (přihlášení přes Supabase Auth na Pages). Po přihlášení se tabulka zobrazí a jde přidávat / mazat řádky.
+V Postgresu je tabulka **`TeamCredential`** (Prisma model stejného jména): název služby, login, heslo (plain text — interní), URL, poznámka. **RLS** povoluje SELECT/INSERT/UPDATE/DELETE jen roli `authenticated` (přihlášení přes Supabase Auth na Pages). Po přihlášení se tabulka zobrazí a jde přidávat / mazat řádky. Pokud v SQL Editoru spouštíš migraci ručně a hlásí to *relation already exists*, použij jen [`supabase/team-credential-rls-only.sql`](supabase/team-credential-rls-only.sql) (bez `CREATE TABLE`).
