@@ -1,4 +1,7 @@
 # Lokální vývoj / CLI. Pro deploy: supabase link && supabase functions deploy extract-receipt
+#
+# verify_jwt musí být false, jinak prohlížečům selže CORS preflight (OPTIONS bez Authorization).
+# JWT se ověřuje uvnitř funkce přes supabase.auth.getUser(jwt).
 
 [functions.extract-receipt]
-verify_jwt = true
+verify_jwt = false
