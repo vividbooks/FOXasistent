@@ -11,7 +11,7 @@ import {
 import { suggestAmountKcFromText } from "../lib/suggest-amount-from-text";
 import type { Session } from "@supabase/supabase-js";
 import { useAuth } from "../auth/AuthContext";
-import type { ExtractDocumentEngine, ExtractSupabaseOpts } from "../lib/extract-document-client";
+import type { ExtractDocumentEngine } from "../lib/extract-document-client";
 import { deriveExpenseTitleFromDocumentText } from "../../../lib/expense-display-title";
 import { configuredReceiptBucket } from "../lib/receipt-storage-url";
 import { supabase } from "../lib/supabase";
@@ -42,18 +42,14 @@ type Props = {
   title?: string;
 };
 
-function geminiSupabaseExtractOpts(session: Session | null): ExtractSupabaseOpts | undefined {
+/** UI + stejná logika jako u cloud přepisu: build přepínač, Supabase URL/klíč a přihlášení. */
+function cloudGeminiExtractUiGate(session: Session | null): boolean {
   const on =
     import.meta.env.VITE_USE_GEMINI_EXTRACT === "1" ||
     import.meta.env.VITE_USE_GEMINI_EXTRACT === "true";
   const url = import.meta.env.VITE_SUPABASE_URL?.replace(/\/$/, "");
   const anon = import.meta.env.VITE_SUPABASE_ANON_KEY?.trim();
-  if (!on || !url || !anon || !session?.access_token) return undefined;
-  return {
-    supabaseUrl: url,
-    anonKey: anon,
-    accessToken: session.access_token,
-  };
+  return Boolean(on && url && anon && session?.access_token);
 }
 
 /** Stejná logika jako u náhledů (výchozí fakturyauctenky). */
@@ -96,23 +92,34 @@ export function FoodExpenseForm({ appUserId, onSuccess, title = "Náklady na jí
   const [extractError, setExtractError] = useState<string | null>(null);
   /** Jaký engine nakonec dodal text (`gemini` = Supabase Edge, `local` = Tesseract / PDF.js). */
   const [extractEngine, setExtractEngine] = useState<ExtractDocumentEngine | null>(null);
+  const [geminiFallbackReason, setGeminiFallbackReason] = useState<string | null>(null);
 
-  const supabaseExtractOpts = useMemo(
-    () => geminiSupabaseExtractOpts(session),
-    [session?.access_token],
-  );
+  const geminiBuildOn = useMemo(() => {
+    const on =
+      import.meta.env.VITE_USE_GEMINI_EXTRACT === "1" ||
+      import.meta.env.VITE_USE_GEMINI_EXTRACT === "true";
+    const url = import.meta.env.VITE_SUPABASE_URL?.replace(/\/$/, "");
+    const anon = import.meta.env.VITE_SUPABASE_ANON_KEY?.trim();
+    return Boolean(on && url && anon);
+  }, []);
+
+  const cloudGeminiUi = useMemo(() => cloudGeminiExtractUiGate(session), [session?.access_token]);
 
   const extractSourceLine = useMemo(() => {
     if (mode === "manual") return null;
     if (extractLoading) {
-      return supabaseExtractOpts
-        ? "Přepis: Gemini přes Supabase…"
+      return cloudGeminiUi
+        ? "Přepis: Gemini přes Supabase (stejný klient jako přihlášení)…"
         : "Přepis: OCR v prohlížeči (Tesseract)…";
     }
     if (extractEngine === "gemini") return "Přepis: Gemini (Google AI přes Supabase)";
-    if (extractEngine === "local") return "Přepis: lokálně v prohlížeči (Tesseract / PDF.js)";
+    if (extractEngine === "local") {
+      return geminiFallbackReason
+        ? "Přepis: lokální záloha — Gemini přes Supabase nevyšel (viz detaily v „Rozpoznání dokladu“)"
+        : "Přepis: lokálně v prohlížeči (Tesseract / PDF.js)";
+    }
     return null;
-  }, [mode, extractLoading, extractEngine, supabaseExtractOpts]);
+  }, [mode, extractLoading, extractEngine, cloudGeminiUi, geminiFallbackReason]);
 
   const reset = useCallback(() => {
     setStep("pick");
@@ -128,6 +135,7 @@ export function FoodExpenseForm({ appUserId, onSuccess, title = "Náklady na jí
     setExtractError(null);
     setExtractLoading(false);
     setExtractEngine(null);
+    setGeminiFallbackReason(null);
     if (inputPhotoRef.current) inputPhotoRef.current.value = "";
     if (inputUploadRef.current) inputUploadRef.current.value = "";
     setUploadDragActive(false);
@@ -347,6 +355,7 @@ export function FoodExpenseForm({ appUserId, onSuccess, title = "Náklady na jí
       setExtractError(null);
       setExtractLoading(false);
       setExtractEngine(null);
+      setGeminiFallbackReason(null);
       return;
     }
 
@@ -357,20 +366,19 @@ export function FoodExpenseForm({ appUserId, onSuccess, title = "Náklady na jí
     setExtractedText("");
     setExtractPdfPages(null);
     setExtractEngine(null);
+    setGeminiFallbackReason(null);
 
     void (async () => {
       try {
         const { extractDocumentClient } = await import("../lib/extract-document-client");
         if (ac.signal.aborted) return;
-        const j = await extractDocumentClient(file, {
-          supabase: supabaseExtractOpts,
-          signal: ac.signal,
-        });
+        const j = await extractDocumentClient(file, { signal: ac.signal });
         if (ac.signal.aborted) return;
         const text = (j.text ?? "").trim();
         setExtractedText(text);
         setExtractHint(j.hint ?? null);
         setExtractEngine(j.engine);
+        setGeminiFallbackReason(j.geminiFallbackReason ?? null);
         setExtractPdfPages(
           typeof j.pageCount === "number" && j.pageCount > 0 ? j.pageCount : null,
         );
@@ -385,7 +393,7 @@ export function FoodExpenseForm({ appUserId, onSuccess, title = "Náklady na jí
     })();
 
     return () => ac.abort();
-  }, [file, mode, step, supabaseExtractOpts]);
+  }, [file, mode, step, session?.access_token]);
 
   const parsedReceipt = useMemo(() => parseReceiptFromText(extractedText), [extractedText]);
 
@@ -714,30 +722,48 @@ export function FoodExpenseForm({ appUserId, onSuccess, title = "Náklady na jí
                   </summary>
                   <div className="border-t border-zinc-200 px-4 pb-4 pt-2">
                     <p className="text-xs leading-relaxed text-zinc-500">
-                      {supabaseExtractOpts ? (
-                        <>
-                          Zapnutý je <strong className="font-medium text-zinc-700">Gemini Vision</strong> přes Supabase (
-                          funkce{" "}
-                          <code className="rounded bg-zinc-200/80 px-1 text-[10px]">extract-receipt</code>
-                          ). Klíč je jen v Supabase secrets, ne v kódu. Když cloud nepomůže, použije se záložně OCR v
-                          prohlížeči (Tesseract / PDF.js). Po nasazení změn proveď tvrdé obnovení stránky (Ctrl+Shift+R /
-                          ⌘+Shift+R).
-                        </>
+                      {geminiBuildOn ? (
+                        cloudGeminiUi ? (
+                          <>
+                            V tomto buildu je zapnutý <strong className="font-medium text-zinc-700">Gemini Vision</strong>{" "}
+                            přes Supabase (
+                            <code className="rounded bg-zinc-200/80 px-1 text-[10px]">extract-receipt</code>
+                            ). Volání jde přes{" "}
+                            <code className="rounded bg-zinc-200/80 px-1 text-[10px]">supabase.functions.invoke</code> se
+                            stejnou session jako přihlášení. API klíč je jen v Supabase secrets. Záloha je OCR v prohlížeči.
+                            Po deployi: tvrdé obnovení (Ctrl+Shift+R / ⌘+Shift+R).
+                          </>
+                        ) : (
+                          <>
+                            Gemini je v buildu zapnutý, ale <strong className="font-medium text-zinc-700">
+                              nejsi přihlášen(a)
+                            </strong>{" "}
+                            — cloud se nevolá, běží jen lokální OCR. Přihlas se a nahraj doklad znovu.
+                          </>
+                        )
                       ) : (
                         <>
-                          Gemini není v tomto buildu aktivní (chybí{" "}
-                          <code className="rounded bg-zinc-200/80 px-1 text-[10px]">VITE_USE_GEMINI_EXTRACT</code>, URL/klíč
-                          Supabase nebo jsi nepřihlášený). Přepis tedy běží v prohlížeči (Tesseract + PDF.js).
+                          V tomto buildu není cloudový Gemini (chybí přepínač nebo Supabase URL/klíč při buildu). Přepis běží
+                          v prohlížeči (Tesseract + PDF.js).
                         </>
                       )}
                     </p>
                     {extractLoading && (
                       <p className="mt-3 text-sm text-zinc-700">
-                        {supabaseExtractOpts
-                          ? "Čtu přes Gemini (Supabase)… případně přepnu na lokální OCR."
+                        {cloudGeminiUi
+                          ? "Čtu přes Gemini (Supabase functions.invoke + tvoje session)… případně přepnu na lokální OCR."
                           : "Čtu dokument v prohlížeči… (první běh může stáhnout jazyková data)."}
                       </p>
                     )}
+                    {geminiFallbackReason && extractEngine === "local" && !extractLoading ? (
+                      <p
+                        className="mt-3 rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-950"
+                        role="status"
+                      >
+                        <span className="font-medium">Gemini přes Supabase neproběhl: </span>
+                        {geminiFallbackReason}
+                      </p>
+                    ) : null}
                     {extractError && (
                       <p className="mt-3 text-sm text-red-600" role="alert">
                         {extractError}

@@ -1,4 +1,6 @@
+import { FunctionsHttpError } from "@supabase/supabase-js";
 import { createWorker, type Worker } from "tesseract.js";
+import { supabase, supabaseConfigured } from "./supabase";
 
 /**
  * Tesseract ve výchozím stavu tahá worker + jádro + jazyky z jsdelivr — to na GitHub Pages často
@@ -233,40 +235,44 @@ async function extractPdfClient(file: File): Promise<{
   }
 }
 
-/** Supabase Edge Function `extract-receipt` — Gemini klíč jen jako secret v Supabase. */
-export type ExtractSupabaseOpts = {
-  supabaseUrl: string;
-  anonKey: string;
-  accessToken: string;
-};
-
 export type ExtractDocumentClientOpts = {
-  supabase?: ExtractSupabaseOpts;
   signal?: AbortSignal;
 };
 
-async function extractViaSupabaseFunction(
+function geminiExtractEnabledInBuild(): boolean {
+  return (
+    import.meta.env.VITE_USE_GEMINI_EXTRACT === "1" ||
+    import.meta.env.VITE_USE_GEMINI_EXTRACT === "true"
+  );
+}
+
+async function invokeExtractReceiptGemini(
   file: File,
-  o: ExtractSupabaseOpts,
   signal?: AbortSignal,
 ): Promise<{ text: string; hint?: string; pageCount?: number }> {
-  const base = o.supabaseUrl.replace(/\/$/, "");
   const fd = new FormData();
   fd.append("file", file);
-  const r = await fetch(`${base}/functions/v1/extract-receipt`, {
-    method: "POST",
-    headers: {
-      Authorization: `Bearer ${o.accessToken}`,
-      apikey: o.anonKey,
-    },
+  type FnBody = { text?: string; hint?: string; pageCount?: number; error?: string };
+  const { data, error } = await supabase.functions.invoke<FnBody>("extract-receipt", {
     body: fd,
     signal,
   });
-  if (!r.ok) {
-    const body = (await r.json().catch(() => null)) as { error?: string } | null;
-    throw new Error(body?.error ?? `HTTP ${r.status}`);
+  if (error) {
+    let msg = error.message;
+    if (error instanceof FunctionsHttpError) {
+      const j = (await error.context.json().catch(() => null)) as { error?: string; msg?: string } | null;
+      if (j?.error) msg = j.error;
+      else if (j?.msg) msg = j.msg;
+    }
+    throw new Error(msg);
   }
-  return (await r.json()) as { text: string; hint?: string; pageCount?: number };
+  const payload = data as FnBody | null;
+  if (payload?.error) throw new Error(payload.error);
+  return {
+    text: (payload?.text ?? "").trim(),
+    hint: payload?.hint,
+    pageCount: payload?.pageCount,
+  };
 }
 
 /** `gemini` = Supabase Edge `extract-receipt` (Gemini Vision). `local` = Tesseract + PDF.js v prohlížeči. */
@@ -277,6 +283,8 @@ export type ExtractDocumentResult = {
   hint?: string;
   pageCount?: number;
   engine: ExtractDocumentEngine;
+  /** Když `engine === "local"` ale cloud byl zapnutý — proč Gemini/Supabase nevyšlo (uživatel uvidí místo ticha). */
+  geminiFallbackReason?: string;
 };
 
 /**
@@ -286,24 +294,35 @@ export async function extractDocumentClient(
   file: File,
   opts?: ExtractDocumentClientOpts,
 ): Promise<ExtractDocumentResult> {
-  if (opts?.supabase) {
-    try {
-      const upload = await fileForSupabaseGeminiExtract(file);
-      const out = await extractViaSupabaseFunction(upload, opts.supabase, opts.signal);
-      const t = (out.text ?? "").trim();
-      if (t.length >= 15) {
-        return { ...out, text: t, engine: "gemini" };
+  const cloudWanted = geminiExtractEnabledInBuild() && supabaseConfigured;
+  let geminiFallbackReason: string | undefined;
+
+  if (cloudWanted) {
+    const { data: auth } = await supabase.auth.getSession();
+    if (auth.session?.access_token) {
+      try {
+        const upload = await fileForSupabaseGeminiExtract(file);
+        const out = await invokeExtractReceiptGemini(upload, opts?.signal);
+        const t = (out.text ?? "").trim();
+        if (t.length > 0) {
+          return { ...out, text: t, engine: "gemini" };
+        }
+        geminiFallbackReason = "Gemini vrátil prázdný text — zkuste znovu nebo zkontrolujte deploy funkce extract-receipt a secret GEMINI_API_KEY.";
+      } catch (e) {
+        geminiFallbackReason =
+          e instanceof Error ? e.message : "Neznámá chyba při volání Supabase (extract-receipt).";
       }
-    } catch {
-      /* fallback lokálně */
+    } else {
+      geminiFallbackReason =
+        "Nejsi přihlášen(a) — bez Supabase session se cloudový přepis nevolá (používá se jen lokální OCR).";
     }
   }
 
   const nameLower = file.name.toLowerCase();
   if (isPdf(file, nameLower)) {
     const pdfOut = await extractPdfClient(file);
-    return { ...pdfOut, engine: "local" };
+    return { ...pdfOut, engine: "local", geminiFallbackReason };
   }
   const imgOut = await extractImageClient(file);
-  return { ...imgOut, engine: "local" };
+  return { ...imgOut, engine: "local", geminiFallbackReason };
 }
