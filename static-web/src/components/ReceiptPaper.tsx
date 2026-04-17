@@ -9,6 +9,8 @@ type Props = {
   dateLabel: string;
   loading: boolean;
   fileLabel?: string;
+  /** True když OCR vrátil nějaký text — prázdné položky pak neznamenají „nic nepřečetlo“. */
+  hasExtractedText?: boolean;
 };
 
 export function ReceiptPaper({
@@ -18,6 +20,7 @@ export function ReceiptPaper({
   dateLabel,
   loading,
   fileLabel,
+  hasExtractedText = false,
 }: Props) {
   const formNum = parseInt(formAmountKc, 10);
   const formOk = Number.isFinite(formNum) && formNum > 0;
@@ -64,9 +67,21 @@ export function ReceiptPaper({
 
           {!loading && items.length === 0 && (
             <p className="mt-4 text-center text-[12px] text-zinc-500">
-              Žádné položky se nepodařilo rozpoznat.
-              <br />
-              <span className="text-[11px]">Zkuste upravit částku vlevo.</span>
+              {hasExtractedText ? (
+                <>
+                  Text z dokladu načten, ale jednotlivé řádky jsme nerozpoznaly.
+                  <br />
+                  <span className="text-[11px]">
+                    Zkontroluj částku vlevo nebo použij „Doplnit z rozpoznání“.
+                  </span>
+                </>
+              ) : (
+                <>
+                  Z dokladu nešlo přečíst text (nebo ještě běží OCR).
+                  <br />
+                  <span className="text-[11px]">Zkus ostřejší fotku, jiný soubor nebo zadej částku ručně.</span>
+                </>
+              )}
             </p>
           )}
 

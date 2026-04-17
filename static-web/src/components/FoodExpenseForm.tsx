@@ -571,6 +571,7 @@ export function FoodExpenseForm({ appUserId, onSuccess, title = "Náklady na jí
                   dateLabel={date}
                   loading={extractLoading}
                   fileLabel={file?.name}
+                  hasExtractedText={extractedText.trim().length > 0}
                 />
               </div>
 
@@ -604,7 +605,7 @@ export function FoodExpenseForm({ appUserId, onSuccess, title = "Náklady na jí
                   </summary>
                   <div className="border-t border-zinc-200 px-4 pb-4 pt-2">
                     <p className="text-xs text-zinc-500">
-                      OCR běží přímo v prohlížeči (žádný další server). První načtení může stáhnout jazyková data — chvíli to trvá.
+                      OCR běží přímo v prohlížeči (GitHub Pages nepotřebuje Vercel). První čtení může stáhnout jazyková data — chvíli to trvá. Po aktualizaci aplikace proveď tvrdé obnovení stránky (Ctrl+Shift+R nebo ⌘+Shift+R), ať se nenačte starý skript z mezipaměti.
                     </p>
                     {extractLoading && (
                       <p className="mt-3 text-sm text-zinc-700">Čtu dokument… (OCR může chvíli trvat.)</p>
