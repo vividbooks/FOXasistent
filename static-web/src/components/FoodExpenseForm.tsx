@@ -9,6 +9,7 @@ import {
   receiptExtLower,
 } from "../lib/receipt-formats";
 import { suggestAmountKcFromText } from "../lib/suggest-amount-from-text";
+import { configuredReceiptBucket } from "../lib/receipt-storage-url";
 import { supabase } from "../lib/supabase";
 import {
   useCallback,
@@ -37,10 +38,8 @@ type Props = {
   title?: string;
 };
 
-/** Musí přesně odpovídat názvu bucketu ve Storage (viz VITE_SUPABASE_STORAGE_BUCKET). */
-const BUCKET =
-  (import.meta.env.VITE_SUPABASE_STORAGE_BUCKET as string | undefined)?.trim() ||
-  "receipts";
+/** Stejná logika jako u náhledů (výchozí fakturyauctenky). */
+const BUCKET = configuredReceiptBucket();
 
 function formatSupabaseError(e: unknown): string {
   if (e == null) return "Neznámá chyba";

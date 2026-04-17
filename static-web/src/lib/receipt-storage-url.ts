@@ -1,25 +1,27 @@
 const LEGACY_BUCKET = "receipts";
 
-/** Aktuální bucket z buildu (např. fakturyauctenky). */
+/**
+ * V tomto repu je ve Storage bucket „fakturyauctenky“. Jiný název nastav přes VITE_SUPABASE_STORAGE_BUCKET.
+ * Dřívější výchozí „receipts“ vede k 400/404, pokud bucket v projektu neexistuje.
+ */
+const DEFAULT_PROJECT_BUCKET = "fakturyauctenky";
+
+/** Aktuální bucket (env má přednost). */
 export function configuredReceiptBucket(): string {
-  return (
-    (import.meta.env.VITE_SUPABASE_STORAGE_BUCKET as string | undefined)?.trim() ||
-    LEGACY_BUCKET
-  );
+  const fromEnv = (import.meta.env.VITE_SUPABASE_STORAGE_BUCKET as string | undefined)?.trim();
+  if (fromEnv) return fromEnv;
+  return DEFAULT_PROJECT_BUCKET;
 }
 
 /**
- * Staré záznamy v DB mají často URL s bucketem „receipts“, zatímco ve Storage je jen jiný bucket.
- * Přemapuje veřejné URL na aktuální bucket (jen pokud se liší od výchozího receipts).
+ * DB často obsahuje staré URL s „receipts“ nebo bez segmentu „public“.
+ * Vždy přemapuj na cílový bucket — i když v buildu chybí env (fallback fakturyauctenky).
  */
 export function normalizeReceiptPublicUrl(url: string): string {
-  const bucket = configuredReceiptBucket();
-  if (!url || bucket === LEGACY_BUCKET) return url;
-
+  if (!url) return url;
+  const target = configuredReceiptBucket();
   let u = url;
-  const to = `/object/public/${bucket}/`;
-  u = u.replaceAll(`/object/public/${LEGACY_BUCKET}/`, to);
-  // Varianty bez segmentu „public“ (nebo zastaralý tvar) — doplníme veřejnou cestu.
-  u = u.replaceAll(`/object/${LEGACY_BUCKET}/`, to);
+  u = u.replaceAll(`/object/public/${LEGACY_BUCKET}/`, `/object/public/${target}/`);
+  u = u.replaceAll(`/object/${LEGACY_BUCKET}/`, `/object/public/${target}/`);
   return u;
 }
