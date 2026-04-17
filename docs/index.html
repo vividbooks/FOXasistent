@@ -4,6 +4,16 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>FOXasistent · Fox Catering</title>
+    <!-- Po nasazení fox-catering na Vercel sem vlož celou URL (např. https://fox-catering-xxx.vercel.app).
+         Návštěvník vividbooks.github.io/FOXasistent pak skončí přímo v aplikaci. -->
+    <script>
+      (function () {
+        var APP_URL = "";
+        if (APP_URL && /^https:\/\//.test(APP_URL)) {
+          location.replace(APP_URL);
+        }
+      })();
+    </script>
     <style>
       :root {
         color-scheme: light dark;
@@ -91,10 +101,24 @@
     <div class="wrap">
       <h1>FOXasistent</h1>
       <p class="lead">
-        Interní nástroj pro catering — směny, poloha a náklady na jídlo. Tato
-        stránka je jen přehled; běžící aplikace je nasazená na Node hostingu
-        (např. Vercel) s databází Supabase.
+        Interní nástroj pro catering — směny, poloha a náklady na jídlo.
+        GitHub Pages umí jen statické soubory; celá aplikace (Next.js) musí běžet
+        na Vercelu nebo jiném Node hostu. Tuto stránku lze nastavit tak, aby
+        <strong>okamžitě přesměrovala</strong> na nasazenou aplikaci (viz úprava
+        v kódu stránky, proměnná <code>APP_URL</code> v <code>&lt;head&gt;</code>).
       </p>
+
+      <div class="card" style="border-color: var(--accent)">
+        <h2>Chci sem „tu pravou“ stránku</h2>
+        <ol style="margin: 0; padding-left: 1.2rem">
+          <li>Nasaď <code>fox-catering</code> na <a href="https://vercel.com">Vercel</a> (root directory <code>fox-catering</code>, stejné env jako lokálně).</li>
+          <li>Zkopíruj produkční URL (např. <code>https://…vercel.app</code>).</li>
+          <li>V repozitáři uprav <code>docs/index.html</code> — v <code>&lt;head&gt;</code> nastav <code>var APP_URL = "https://…";</code> a pushni na <code>main</code>.</li>
+        </ol>
+        <p style="margin: 0.75rem 0 0; color: var(--muted); font-size: 0.95rem">
+          Po tomhle bude <code>vividbooks.github.io/FOXasistent/</code> jen vstupní bod, který tě hodí do živé aplikace.
+        </p>
+      </div>
 
       <div class="card">
         <h2>Zdrojový kód</h2>

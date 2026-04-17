@@ -26,8 +26,9 @@ V Storage vytvořte veřejný bucket **`receipts`** (viz `fox-catering/.env.exam
 
 ## GitHub Pages (tento repozitář)
 
-Na [GitHub Pages](https://pages.github.com/) je nasazená **jen statická úvodní stránka** z adresáře `docs/` (informace o projektu a odkazy).  
-**Samotná aplikace** (přihlášení, formuláře, API) na Pages **běžet nemůže** — potřebuje Node.js hosting.
+Na [GitHub Pages](https://pages.github.com/) je ze složky `docs/` statická stránka. **Next.js aplikaci** na Pages spustit nejde — běží na Vercelu (nebo jiném Node hostu).
+
+**Přesměrování z `github.io` na živou app:** v souboru `docs/index.html` v `<head>` nastav proměnnou `APP_URL` na produkční URL z Vercelu (např. `https://fox-catering-xxx.vercel.app`) a pushni na `main`. Návštěvník pak z `https://vividbooks.github.io/FOXasistent/` skončí přímo v aplikaci.
 
 **Po prvním pushi:** *Settings → Pages → Build and deployment → Source: GitHub Actions*.
 
