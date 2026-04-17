@@ -45,7 +45,13 @@ export default function AdminPage() {
       setExpenseRange({ from: ex.from, to: ex.to });
     } catch (e) {
       console.error(e);
-      setLoadErr(e instanceof Error ? e.message : "Chyba načtení");
+      const msg =
+        e && typeof e === "object" && "message" in e
+          ? String((e as { message: unknown }).message)
+          : e instanceof Error
+            ? e.message
+            : "Chyba načtení";
+      setLoadErr(msg);
     }
   }, [period]);
 

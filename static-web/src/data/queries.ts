@@ -72,7 +72,7 @@ export async function fetchAdminShifts(period: Period): Promise<{
   const toIso = to.toISOString();
   const { data: shiftsRaw, error } = await supabase
     .from("Shift")
-    .select("*, pings(*)")
+    .select("id, startedAt, endedAt, userId")
     .lte("startedAt", toIso)
     .order("startedAt", { ascending: false });
   if (error) throw error;
@@ -80,10 +80,28 @@ export async function fetchAdminShifts(period: Period): Promise<{
   const shifts = (shiftsRaw ?? []).filter(
     (s) => !s.endedAt || new Date(s.endedAt as string).getTime() >= fromT,
   );
+  const ids = shifts.map((s) => s.id);
+  type DbPing = ShiftRow["pings"][number] & { shiftId: string };
+  const pingRows: DbPing[] = [];
+  if (ids.length > 0) {
+    const { data: pingsData, error: pe } = await supabase
+      .from("LocationPing")
+      .select("id, shiftId, latitude, longitude, recordedAt, accuracyM")
+      .in("shiftId", ids);
+    if (pe) throw pe;
+    pingRows.push(...((pingsData ?? []) as DbPing[]));
+  }
+  const pingsByShift = new Map<string, ShiftRow["pings"]>();
+  for (const p of pingRows) {
+    const { shiftId: sid, ...rest } = p;
+    const list = pingsByShift.get(sid) ?? [];
+    list.push(rest);
+    pingsByShift.set(sid, list);
+  }
   const umap = await loadUserMap();
   const rows: ShiftRow[] = shifts.map((s) => {
     const u = umap.get(s.userId);
-    const pings = [...((s.pings as ShiftRow["pings"]) ?? [])].sort(
+    const pings = [...(pingsByShift.get(s.id) ?? [])].sort(
       (a, b) => new Date(a.recordedAt).getTime() - new Date(b.recordedAt).getTime(),
     );
     return {
