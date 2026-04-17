@@ -1,0 +1,133 @@
+<!DOCTYPE html>
+<html lang="cs">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>FOXasistent · Fox Catering</title>
+    <style>
+      :root {
+        color-scheme: light dark;
+        --bg: #f4f4f5;
+        --card: #fff;
+        --text: #18181b;
+        --muted: #71717a;
+        --accent: #0f766e;
+        --border: #e4e4e7;
+      }
+      @media (prefers-color-scheme: dark) {
+        :root {
+          --bg: #18181b;
+          --card: #27272a;
+          --text: #fafafa;
+          --muted: #a1a1aa;
+          --border: #3f3f46;
+        }
+      }
+      * {
+        box-sizing: border-box;
+      }
+      body {
+        font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+        margin: 0;
+        min-height: 100vh;
+        background: var(--bg);
+        color: var(--text);
+        line-height: 1.6;
+      }
+      .wrap {
+        max-width: 40rem;
+        margin: 0 auto;
+        padding: 2.5rem 1.25rem 4rem;
+      }
+      h1 {
+        font-size: 1.75rem;
+        font-weight: 700;
+        margin: 0 0 0.5rem;
+        letter-spacing: -0.02em;
+      }
+      .lead {
+        color: var(--muted);
+        margin: 0 0 2rem;
+        font-size: 1.05rem;
+      }
+      .card {
+        background: var(--card);
+        border: 1px solid var(--border);
+        border-radius: 1rem;
+        padding: 1.25rem 1.5rem;
+        margin-bottom: 1rem;
+      }
+      .card h2 {
+        font-size: 0.75rem;
+        text-transform: uppercase;
+        letter-spacing: 0.08em;
+        color: var(--muted);
+        margin: 0 0 0.75rem;
+        font-weight: 600;
+      }
+      a {
+        color: var(--accent);
+        font-weight: 600;
+        text-decoration: none;
+      }
+      a:hover {
+        text-decoration: underline;
+      }
+      ul {
+        margin: 0;
+        padding-left: 1.2rem;
+      }
+      li {
+        margin: 0.35rem 0;
+      }
+      footer {
+        margin-top: 2.5rem;
+        font-size: 0.85rem;
+        color: var(--muted);
+      }
+    </style>
+  </head>
+  <body>
+    <div class="wrap">
+      <h1>FOXasistent</h1>
+      <p class="lead">
+        Interní nástroj pro catering — směny, poloha a náklady na jídlo. Tato
+        stránka je jen přehled; běžící aplikace je nasazená na Node hostingu
+        (např. Vercel) s databází Supabase.
+      </p>
+
+      <div class="card">
+        <h2>Zdrojový kód</h2>
+        <p style="margin: 0">
+          <a href="https://github.com/vividbooks/FOXasistent">github.com/vividbooks/FOXasistent</a>
+        </p>
+      </div>
+
+      <div class="card">
+        <h2>Aplikace (Next.js)</h2>
+        <p style="margin: 0 0 0.75rem">
+          Adresář <strong>fox-catering/</strong> — instalace a proměnné prostředí
+          jsou v README repozitáře.
+        </p>
+        <ul>
+          <li>Supabase Postgres + Storage (bucket <code>receipts</code>)</li>
+          <li>Přihlášení NextAuth</li>
+        </ul>
+      </div>
+
+      <div class="card">
+        <h2>Supabase</h2>
+        <p style="margin: 0">
+          Projekt ref (veřejná část URL):
+          <code>hxsdhfszkvnamgmnuuuc</code>
+          →
+          <code>https://hxsdhfszkvnamgmnuuuc.supabase.co</code>
+        </p>
+      </div>
+
+      <footer>
+        Statická stránka z <code>docs/</code> · GitHub Pages
+      </footer>
+    </div>
+  </body>
+</html>

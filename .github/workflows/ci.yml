@@ -1,0 +1,35 @@
+name: CI fox-catering
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+defaults:
+  run:
+    working-directory: fox-catering
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+          cache-dependency-path: fox-catering/package-lock.json
+      - name: Install
+        run: npm ci
+      - name: Prisma generate
+        run: npx prisma generate
+      - name: Lint
+        run: npm run lint
+      - name: Build
+        env:
+          AUTH_SECRET: ci-build-placeholder-secret-min-32-chars!!
+          DATABASE_URL: postgresql://ci:ci@127.0.0.1:5432/ci?schema=public
+          NEXT_PUBLIC_SUPABASE_URL: https://hxsdhfszkvnamgmnuuuc.supabase.co
+          SUPABASE_SERVICE_ROLE_KEY: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.ci-placeholder
+        run: npm run build

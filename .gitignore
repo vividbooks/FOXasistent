@@ -1,0 +1,13 @@
+.DS_Store
+*.log
+.env
+.env.*.local
+
+# Fox Catering
+fox-catering/node_modules/
+fox-catering/.next/
+fox-catering/prisma/dev.db
+fox-catering/prisma/dev.db-journal
+
+# Heisse Preise (sibling project)
+heissepreise/node_modules/

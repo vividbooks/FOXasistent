@@ -1,0 +1,61 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id              String    @id @default(cuid())
+  username        String    @unique
+  passwordHash    String
+  /// ADMIN | EMPLOYEE
+  role            String
+  name            String
+  hourlyRateKc    Int?
+  createdAt       DateTime  @default(now())
+  shifts          Shift[]
+  expensesCreated Expense[]
+}
+
+model Shift {
+  id        String   @id @default(cuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  startedAt DateTime
+  endedAt   DateTime?
+  pings     LocationPing[]
+
+  @@index([userId])
+  @@index([startedAt])
+}
+
+model LocationPing {
+  id         String   @id @default(cuid())
+  shiftId    String
+  shift      Shift    @relation(fields: [shiftId], references: [id], onDelete: Cascade)
+  latitude   Float
+  longitude  Float
+  accuracyM  Float?
+  recordedAt DateTime
+
+  @@index([shiftId])
+}
+
+model Expense {
+  id          String   @id @default(cuid())
+  amountKc    Int
+  date        DateTime
+  note        String?
+  /// MANUAL | INVOICE | RECEIPT
+  kind        String
+  receiptUrl  String?
+  createdById String
+  user        User     @relation(fields: [createdById], references: [id])
+  createdAt   DateTime @default(now())
+
+  @@index([date])
+  @@index([createdById])
+}
