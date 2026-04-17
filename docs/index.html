@@ -4,154 +4,54 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>FOXasistent · Fox Catering</title>
-    <!-- Po nasazení fox-catering na Vercel sem vlož celou URL (např. https://fox-catering-xxx.vercel.app).
-         Návštěvník vividbooks.github.io/FOXasistent pak skončí přímo v aplikaci. -->
+    <!-- Živá aplikace běží na Vercelu. GitHub Pages jen přesměruje na stejnou adresu v prohlížeči. -->
+    <meta
+      http-equiv="refresh"
+      content="0;url=https://fox-catering.vercel.app"
+    />
     <script>
-      (function () {
-        var APP_URL = "";
-        if (APP_URL && /^https:\/\//.test(APP_URL)) {
-          location.replace(APP_URL);
-        }
-      })();
+      location.replace("https://fox-catering.vercel.app");
     </script>
     <style>
       :root {
         color-scheme: light dark;
-        --bg: #f4f4f5;
-        --card: #fff;
         --text: #18181b;
         --muted: #71717a;
         --accent: #0f766e;
-        --border: #e4e4e7;
       }
       @media (prefers-color-scheme: dark) {
         :root {
-          --bg: #18181b;
-          --card: #27272a;
           --text: #fafafa;
           --muted: #a1a1aa;
-          --border: #3f3f46;
         }
-      }
-      * {
-        box-sizing: border-box;
       }
       body {
         font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
-        margin: 0;
-        min-height: 100vh;
-        background: var(--bg);
+        margin: 2rem;
         color: var(--text);
         line-height: 1.6;
-      }
-      .wrap {
-        max-width: 40rem;
-        margin: 0 auto;
-        padding: 2.5rem 1.25rem 4rem;
-      }
-      h1 {
-        font-size: 1.75rem;
-        font-weight: 700;
-        margin: 0 0 0.5rem;
-        letter-spacing: -0.02em;
-      }
-      .lead {
-        color: var(--muted);
-        margin: 0 0 2rem;
-        font-size: 1.05rem;
-      }
-      .card {
-        background: var(--card);
-        border: 1px solid var(--border);
-        border-radius: 1rem;
-        padding: 1.25rem 1.5rem;
-        margin-bottom: 1rem;
-      }
-      .card h2 {
-        font-size: 0.75rem;
-        text-transform: uppercase;
-        letter-spacing: 0.08em;
-        color: var(--muted);
-        margin: 0 0 0.75rem;
-        font-weight: 600;
+        max-width: 36rem;
       }
       a {
         color: var(--accent);
         font-weight: 600;
-        text-decoration: none;
-      }
-      a:hover {
-        text-decoration: underline;
-      }
-      ul {
-        margin: 0;
-        padding-left: 1.2rem;
-      }
-      li {
-        margin: 0.35rem 0;
-      }
-      footer {
-        margin-top: 2.5rem;
-        font-size: 0.85rem;
-        color: var(--muted);
       }
     </style>
   </head>
   <body>
-    <div class="wrap">
-      <h1>FOXasistent</h1>
-      <p class="lead">
-        Interní nástroj pro catering — směny, poloha a náklady na jídlo.
-        GitHub Pages umí jen statické soubory; celá aplikace (Next.js) musí běžet
-        na Vercelu nebo jiném Node hostu. Tuto stránku lze nastavit tak, aby
-        <strong>okamžitě přesměrovala</strong> na nasazenou aplikaci (viz úprava
-        v kódu stránky, proměnná <code>APP_URL</code> v <code>&lt;head&gt;</code>).
-      </p>
-
-      <div class="card" style="border-color: var(--accent)">
-        <h2>Chci sem „tu pravou“ stránku</h2>
-        <ol style="margin: 0; padding-left: 1.2rem">
-          <li>Nasaď <code>fox-catering</code> na <a href="https://vercel.com">Vercel</a> (root directory <code>fox-catering</code>, stejné env jako lokálně).</li>
-          <li>Zkopíruj produkční URL (např. <code>https://…vercel.app</code>).</li>
-          <li>V repozitáři uprav <code>docs/index.html</code> — v <code>&lt;head&gt;</code> nastav <code>var APP_URL = "https://…";</code> a pushni na <code>main</code>.</li>
-        </ol>
-        <p style="margin: 0.75rem 0 0; color: var(--muted); font-size: 0.95rem">
-          Po tomhle bude <code>vividbooks.github.io/FOXasistent/</code> jen vstupní bod, který tě hodí do živé aplikace.
-        </p>
-      </div>
-
-      <div class="card">
-        <h2>Zdrojový kód</h2>
-        <p style="margin: 0">
-          <a href="https://github.com/vividbooks/FOXasistent">github.com/vividbooks/FOXasistent</a>
-        </p>
-      </div>
-
-      <div class="card">
-        <h2>Aplikace (Next.js)</h2>
-        <p style="margin: 0 0 0.75rem">
-          Adresář <strong>fox-catering/</strong> — instalace a proměnné prostředí
-          jsou v README repozitáře.
-        </p>
-        <ul>
-          <li>Supabase Postgres + Storage (bucket <code>receipts</code>)</li>
-          <li>Přihlášení NextAuth</li>
-        </ul>
-      </div>
-
-      <div class="card">
-        <h2>Supabase</h2>
-        <p style="margin: 0">
-          Projekt ref (veřejná část URL):
-          <code>hxsdhfszkvnamgmnuuuc</code>
-          →
-          <code>https://hxsdhfszkvnamgmnuuuc.supabase.co</code>
-        </p>
-      </div>
-
-      <footer>
-        Statická stránka z <code>docs/</code> · GitHub Pages
-      </footer>
-    </div>
+    <p>Otevírám aplikaci Fox Catering…</p>
+    <p>
+      Pokud se nic nestane,
+      <a href="https://fox-catering.vercel.app">klikni sem</a>.
+    </p>
+    <p style="color: var(--muted); font-size: 0.9rem">
+      Vidíš „404“ na Vercelu? V
+      <a href="https://vercel.com/new">Vercel</a>
+      importuj repo
+      <a href="https://github.com/vividbooks/FOXasistent">vividbooks/FOXasistent</a>,
+      root directory <strong>fox-catering</strong>, a nastav env z
+      <code>fox-catering/.env.example</code>. Jméno projektu
+      <strong>fox-catering</strong> dá přesně tuto URL.
+    </p>
   </body>
 </html>
