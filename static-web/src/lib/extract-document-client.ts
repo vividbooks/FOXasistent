@@ -222,28 +222,32 @@ async function extractPdfClient(file: File): Promise<{
   }
 }
 
-export type ExtractRemoteOpts = {
-  apiOrigin: string;
+/** Supabase Edge Function `extract-receipt` — Gemini klíč jen jako secret v Supabase. */
+export type ExtractSupabaseOpts = {
+  supabaseUrl: string;
+  anonKey: string;
   accessToken: string;
 };
 
 export type ExtractDocumentClientOpts = {
-  /** Volání Next/Vercel API (Gemini Vision + fallback Tesseract na serveru). */
-  remote?: ExtractRemoteOpts;
+  supabase?: ExtractSupabaseOpts;
   signal?: AbortSignal;
 };
 
-async function extractViaBackendApi(
+async function extractViaSupabaseFunction(
   file: File,
-  remote: ExtractRemoteOpts,
+  o: ExtractSupabaseOpts,
   signal?: AbortSignal,
 ): Promise<{ text: string; hint?: string; pageCount?: number }> {
-  const base = remote.apiOrigin.replace(/\/$/, "");
+  const base = o.supabaseUrl.replace(/\/$/, "");
   const fd = new FormData();
   fd.append("file", file);
-  const r = await fetch(`${base}/api/extract-document`, {
+  const r = await fetch(`${base}/functions/v1/extract-receipt`, {
     method: "POST",
-    headers: { Authorization: `Bearer ${remote.accessToken}` },
+    headers: {
+      Authorization: `Bearer ${o.accessToken}`,
+      apikey: o.anonKey,
+    },
     body: fd,
     signal,
   });
@@ -255,7 +259,7 @@ async function extractViaBackendApi(
 }
 
 /**
- * Čtení textu: volitelně přes Vercel (Gemini), jinak Tesseract + PDF.js v prohlížeči.
+ * Čtení textu: volitelně přes Supabase Edge Function (Gemini), jinak Tesseract + PDF.js v prohlížeči.
  */
 export async function extractDocumentClient(
   file: File,
@@ -265,9 +269,9 @@ export async function extractDocumentClient(
   hint?: string;
   pageCount?: number;
 }> {
-  if (opts?.remote) {
+  if (opts?.supabase) {
     try {
-      const out = await extractViaBackendApi(file, opts.remote, opts.signal);
+      const out = await extractViaSupabaseFunction(file, opts.supabase, opts.signal);
       const t = (out.text ?? "").trim();
       if (t.length >= 15) {
         return { ...out, text: t };

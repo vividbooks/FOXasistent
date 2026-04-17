@@ -1,0 +1,4 @@
+# Lokální vývoj / CLI. Pro deploy: supabase link && supabase functions deploy extract-receipt
+
+[functions.extract-receipt]
+verify_jwt = true

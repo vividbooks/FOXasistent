@@ -11,6 +11,7 @@ import {
 import { suggestAmountKcFromText } from "../lib/suggest-amount-from-text";
 import type { Session } from "@supabase/supabase-js";
 import { useAuth } from "../auth/AuthContext";
+import type { ExtractSupabaseOpts } from "../lib/extract-document-client";
 import { deriveExpenseTitleFromDocumentText } from "../../../lib/expense-display-title";
 import { configuredReceiptBucket } from "../lib/receipt-storage-url";
 import { supabase } from "../lib/supabase";
@@ -41,15 +42,18 @@ type Props = {
   title?: string;
 };
 
-function geminiRemoteExtractOpts(session: Session | null):
-  | { apiOrigin: string; accessToken: string }
-  | undefined {
-  const apiBase = import.meta.env.VITE_NEXT_API_ORIGIN?.replace(/\/$/, "");
+function geminiSupabaseExtractOpts(session: Session | null): ExtractSupabaseOpts | undefined {
   const on =
     import.meta.env.VITE_USE_GEMINI_EXTRACT === "1" ||
     import.meta.env.VITE_USE_GEMINI_EXTRACT === "true";
-  if (!on || !apiBase || !session?.access_token) return undefined;
-  return { apiOrigin: apiBase, accessToken: session.access_token };
+  const url = import.meta.env.VITE_SUPABASE_URL?.replace(/\/$/, "");
+  const anon = import.meta.env.VITE_SUPABASE_ANON_KEY?.trim();
+  if (!on || !url || !anon || !session?.access_token) return undefined;
+  return {
+    supabaseUrl: url,
+    anonKey: anon,
+    accessToken: session.access_token,
+  };
 }
 
 /** Stejná logika jako u náhledů (výchozí fakturyauctenky). */
@@ -336,9 +340,9 @@ export function FoodExpenseForm({ appUserId, onSuccess, title = "Náklady na jí
       try {
         const { extractDocumentClient } = await import("../lib/extract-document-client");
         if (ac.signal.aborted) return;
-        const remote = geminiRemoteExtractOpts(session);
+        const supabaseExtract = geminiSupabaseExtractOpts(session);
         const j = await extractDocumentClient(file, {
-          remote,
+          supabase: supabaseExtract,
           signal: ac.signal,
         });
         if (ac.signal.aborted) return;
