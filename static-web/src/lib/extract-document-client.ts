@@ -269,24 +269,30 @@ async function extractViaSupabaseFunction(
   return (await r.json()) as { text: string; hint?: string; pageCount?: number };
 }
 
+/** `gemini` = Supabase Edge `extract-receipt` (Gemini Vision). `local` = Tesseract + PDF.js v prohlížeči. */
+export type ExtractDocumentEngine = "gemini" | "local";
+
+export type ExtractDocumentResult = {
+  text: string;
+  hint?: string;
+  pageCount?: number;
+  engine: ExtractDocumentEngine;
+};
+
 /**
  * Čtení textu: volitelně přes Supabase Edge Function (Gemini), jinak Tesseract + PDF.js v prohlížeči.
  */
 export async function extractDocumentClient(
   file: File,
   opts?: ExtractDocumentClientOpts,
-): Promise<{
-  text: string;
-  hint?: string;
-  pageCount?: number;
-}> {
+): Promise<ExtractDocumentResult> {
   if (opts?.supabase) {
     try {
       const upload = await fileForSupabaseGeminiExtract(file);
       const out = await extractViaSupabaseFunction(upload, opts.supabase, opts.signal);
       const t = (out.text ?? "").trim();
       if (t.length >= 15) {
-        return { ...out, text: t };
+        return { ...out, text: t, engine: "gemini" };
       }
     } catch {
       /* fallback lokálně */
@@ -295,7 +301,9 @@ export async function extractDocumentClient(
 
   const nameLower = file.name.toLowerCase();
   if (isPdf(file, nameLower)) {
-    return extractPdfClient(file);
+    const pdfOut = await extractPdfClient(file);
+    return { ...pdfOut, engine: "local" };
   }
-  return extractImageClient(file);
+  const imgOut = await extractImageClient(file);
+  return { ...imgOut, engine: "local" };
 }

@@ -28,14 +28,12 @@ jobs:
           node-version: "22"
           cache: npm
           cache-dependency-path: static-web/package-lock.json
+      # Exportuj jen neprázdné vars — prázdný env by přepsal hodnoty ze static-web/.env.production (Vite).
       - name: Install & build static site
         working-directory: static-web
-        env:
-          # Volitelné: nastav v repo Settings → Variables (např. VERCEL_APP_URL)
-          VITE_NEXT_API_ORIGIN: ${{ vars.VERCEL_APP_URL }}
-          VITE_SUPABASE_STORAGE_BUCKET: ${{ vars.SUPABASE_STORAGE_BUCKET }}
-          # VITE_USE_GEMINI_EXTRACT: ve static-web/.env.production (Git), aby prázdná repo Variable build nevypla
         run: |
+          if [ -n "${{ vars.VERCEL_APP_URL }}" ]; then export VITE_NEXT_API_ORIGIN="${{ vars.VERCEL_APP_URL }}"; fi
+          if [ -n "${{ vars.SUPABASE_STORAGE_BUCKET }}" ]; then export VITE_SUPABASE_STORAGE_BUCKET="${{ vars.SUPABASE_STORAGE_BUCKET }}"; fi
           npm ci
           npm run build
       - uses: actions/configure-pages@v5

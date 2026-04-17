@@ -11,7 +11,7 @@ import {
 import { suggestAmountKcFromText } from "../lib/suggest-amount-from-text";
 import type { Session } from "@supabase/supabase-js";
 import { useAuth } from "../auth/AuthContext";
-import type { ExtractSupabaseOpts } from "../lib/extract-document-client";
+import type { ExtractDocumentEngine, ExtractSupabaseOpts } from "../lib/extract-document-client";
 import { deriveExpenseTitleFromDocumentText } from "../../../lib/expense-display-title";
 import { configuredReceiptBucket } from "../lib/receipt-storage-url";
 import { supabase } from "../lib/supabase";
@@ -94,6 +94,25 @@ export function FoodExpenseForm({ appUserId, onSuccess, title = "Náklady na jí
   const [extractHint, setExtractHint] = useState<string | null>(null);
   const [extractLoading, setExtractLoading] = useState(false);
   const [extractError, setExtractError] = useState<string | null>(null);
+  /** Jaký engine nakonec dodal text (`gemini` = Supabase Edge, `local` = Tesseract / PDF.js). */
+  const [extractEngine, setExtractEngine] = useState<ExtractDocumentEngine | null>(null);
+
+  const supabaseExtractOpts = useMemo(
+    () => geminiSupabaseExtractOpts(session),
+    [session?.access_token],
+  );
+
+  const extractSourceLine = useMemo(() => {
+    if (mode === "manual") return null;
+    if (extractLoading) {
+      return supabaseExtractOpts
+        ? "Přepis: Gemini přes Supabase…"
+        : "Přepis: OCR v prohlížeči (Tesseract)…";
+    }
+    if (extractEngine === "gemini") return "Přepis: Gemini (Google AI přes Supabase)";
+    if (extractEngine === "local") return "Přepis: lokálně v prohlížeči (Tesseract / PDF.js)";
+    return null;
+  }, [mode, extractLoading, extractEngine, supabaseExtractOpts]);
 
   const reset = useCallback(() => {
     setStep("pick");
@@ -108,6 +127,7 @@ export function FoodExpenseForm({ appUserId, onSuccess, title = "Náklady na jí
     setExtractHint(null);
     setExtractError(null);
     setExtractLoading(false);
+    setExtractEngine(null);
     if (inputPhotoRef.current) inputPhotoRef.current.value = "";
     if (inputUploadRef.current) inputUploadRef.current.value = "";
     setUploadDragActive(false);
@@ -326,6 +346,7 @@ export function FoodExpenseForm({ appUserId, onSuccess, title = "Náklady na jí
       setExtractHint(null);
       setExtractError(null);
       setExtractLoading(false);
+      setExtractEngine(null);
       return;
     }
 
@@ -335,20 +356,21 @@ export function FoodExpenseForm({ appUserId, onSuccess, title = "Náklady na jí
     setExtractHint(null);
     setExtractedText("");
     setExtractPdfPages(null);
+    setExtractEngine(null);
 
     void (async () => {
       try {
         const { extractDocumentClient } = await import("../lib/extract-document-client");
         if (ac.signal.aborted) return;
-        const supabaseExtract = geminiSupabaseExtractOpts(session);
         const j = await extractDocumentClient(file, {
-          supabase: supabaseExtract,
+          supabase: supabaseExtractOpts,
           signal: ac.signal,
         });
         if (ac.signal.aborted) return;
         const text = (j.text ?? "").trim();
         setExtractedText(text);
         setExtractHint(j.hint ?? null);
+        setExtractEngine(j.engine);
         setExtractPdfPages(
           typeof j.pageCount === "number" && j.pageCount > 0 ? j.pageCount : null,
         );
@@ -363,7 +385,7 @@ export function FoodExpenseForm({ appUserId, onSuccess, title = "Náklady na jí
     })();
 
     return () => ac.abort();
-  }, [file, mode, step, session?.access_token]);
+  }, [file, mode, step, supabaseExtractOpts]);
 
   const parsedReceipt = useMemo(() => parseReceiptFromText(extractedText), [extractedText]);
 
@@ -646,6 +668,11 @@ export function FoodExpenseForm({ appUserId, onSuccess, title = "Náklady na jí
                 <p className="mb-3 w-full max-w-[340px] text-center text-xs font-medium uppercase tracking-wide text-zinc-500 lg:text-right">
                   Náhled účtenky
                 </p>
+                {extractSourceLine ? (
+                  <p className="mb-2 w-full max-w-[340px] text-center text-[11px] font-medium leading-snug text-indigo-800 lg:text-right">
+                    {extractSourceLine}
+                  </p>
+                ) : null}
                 <ReceiptPaper
                   items={parsedReceipt.items}
                   parsed={parsedReceipt}
@@ -686,11 +713,30 @@ export function FoodExpenseForm({ appUserId, onSuccess, title = "Náklady na jí
                     </span>
                   </summary>
                   <div className="border-t border-zinc-200 px-4 pb-4 pt-2">
-                    <p className="text-xs text-zinc-500">
-                      OCR běží přímo v prohlížeči (GitHub Pages nepotřebuje Vercel). První čtení může stáhnout jazyková data — chvíli to trvá. Po aktualizaci aplikace proveď tvrdé obnovení stránky (Ctrl+Shift+R nebo ⌘+Shift+R), ať se nenačte starý skript z mezipaměti.
+                    <p className="text-xs leading-relaxed text-zinc-500">
+                      {supabaseExtractOpts ? (
+                        <>
+                          Zapnutý je <strong className="font-medium text-zinc-700">Gemini Vision</strong> přes Supabase (
+                          funkce{" "}
+                          <code className="rounded bg-zinc-200/80 px-1 text-[10px]">extract-receipt</code>
+                          ). Klíč je jen v Supabase secrets, ne v kódu. Když cloud nepomůže, použije se záložně OCR v
+                          prohlížeči (Tesseract / PDF.js). Po nasazení změn proveď tvrdé obnovení stránky (Ctrl+Shift+R /
+                          ⌘+Shift+R).
+                        </>
+                      ) : (
+                        <>
+                          Gemini není v tomto buildu aktivní (chybí{" "}
+                          <code className="rounded bg-zinc-200/80 px-1 text-[10px]">VITE_USE_GEMINI_EXTRACT</code>, URL/klíč
+                          Supabase nebo jsi nepřihlášený). Přepis tedy běží v prohlížeči (Tesseract + PDF.js).
+                        </>
+                      )}
                     </p>
                     {extractLoading && (
-                      <p className="mt-3 text-sm text-zinc-700">Čtu dokument… (OCR může chvíli trvat.)</p>
+                      <p className="mt-3 text-sm text-zinc-700">
+                        {supabaseExtractOpts
+                          ? "Čtu přes Gemini (Supabase)… případně přepnu na lokální OCR."
+                          : "Čtu dokument v prohlížeči… (první běh může stáhnout jazyková data)."}
+                      </p>
                     )}
                     {extractError && (
                       <p className="mt-3 text-sm text-red-600" role="alert">
