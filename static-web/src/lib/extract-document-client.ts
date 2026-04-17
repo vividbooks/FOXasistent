@@ -222,14 +222,61 @@ async function extractPdfClient(file: File): Promise<{
   }
 }
 
+export type ExtractRemoteOpts = {
+  apiOrigin: string;
+  accessToken: string;
+};
+
+export type ExtractDocumentClientOpts = {
+  /** Volání Next/Vercel API (Gemini Vision + fallback Tesseract na serveru). */
+  remote?: ExtractRemoteOpts;
+  signal?: AbortSignal;
+};
+
+async function extractViaBackendApi(
+  file: File,
+  remote: ExtractRemoteOpts,
+  signal?: AbortSignal,
+): Promise<{ text: string; hint?: string; pageCount?: number }> {
+  const base = remote.apiOrigin.replace(/\/$/, "");
+  const fd = new FormData();
+  fd.append("file", file);
+  const r = await fetch(`${base}/api/extract-document`, {
+    method: "POST",
+    headers: { Authorization: `Bearer ${remote.accessToken}` },
+    body: fd,
+    signal,
+  });
+  if (!r.ok) {
+    const body = (await r.json().catch(() => null)) as { error?: string } | null;
+    throw new Error(body?.error ?? `HTTP ${r.status}`);
+  }
+  return (await r.json()) as { text: string; hint?: string; pageCount?: number };
+}
+
 /**
- * Čtení textu z účtenky / faktury přímo v prohlížeči (GitHub Pages bez vlastního serveru).
+ * Čtení textu: volitelně přes Vercel (Gemini), jinak Tesseract + PDF.js v prohlížeči.
  */
-export async function extractDocumentClient(file: File): Promise<{
+export async function extractDocumentClient(
+  file: File,
+  opts?: ExtractDocumentClientOpts,
+): Promise<{
   text: string;
   hint?: string;
   pageCount?: number;
 }> {
+  if (opts?.remote) {
+    try {
+      const out = await extractViaBackendApi(file, opts.remote, opts.signal);
+      const t = (out.text ?? "").trim();
+      if (t.length >= 15) {
+        return { ...out, text: t };
+      }
+    } catch {
+      /* fallback lokálně */
+    }
+  }
+
   const nameLower = file.name.toLowerCase();
   if (isPdf(file, nameLower)) {
     return extractPdfClient(file);

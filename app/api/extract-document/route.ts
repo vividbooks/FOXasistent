@@ -1,5 +1,9 @@
 import { auth } from "@/auth";
 import { extractDocumentCorsHeaders } from "@/lib/extract-cors";
+import {
+  extractReceiptTextWithGemini,
+  isGeminiConfigured,
+} from "@/lib/gemini-receipt-text";
 import { buildOcrPngCandidates } from "@/lib/image-for-ocr";
 import { sniffLikelyRasterImage } from "@/lib/image-sniff";
 import { isAllowedReceiptUpload } from "@/lib/receipt-upload-formats";
@@ -179,6 +183,19 @@ export async function POST(req: Request) {
   const buf = Buffer.from(await file.arrayBuffer());
 
   try {
+    if (isGeminiConfigured()) {
+      try {
+        const geminiText = await extractReceiptTextWithGemini(buf, file);
+        const trimmed = geminiText.trim();
+        const looksLikeFailure = /^\[čitelný text/i.test(trimmed);
+        if (trimmed.length >= 20 && !looksLikeFailure) {
+          return withCors(req, NextResponse.json({ text: trimmed }));
+        }
+      } catch (e) {
+        console.warn("extract-document: Gemini selhalo, zkouším Tesseract", e);
+      }
+    }
+
     if (isPdf(file, name)) {
       const { text, hint, pageCount } = await extractPdfText(buf);
       if (!text) {

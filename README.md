@@ -31,7 +31,7 @@ Kontrola: otevři `https://TVOJE-APP.vercel.app/api/health` — má být `"ok":t
 
 **`static-web/`** je **React + Vite SPA** napojená přímo na **Supabase** (Auth, Postgres, Storage): směny, poloha, náklady, účtenky (nahrání souboru), admin přehled, tým, sdílené účty (`TeamCredential`). Build jde do **`docs/`**, deploy řeší [`.github/workflows/pages.yml`](.github/workflows/pages.yml).
 
-**Čtení účtenek a PDF** běží **přímo v prohlížeči** (Tesseract + PDF.js) — na GitHub Pages nepotřebuješ Vercel ani jiný server jen kvůli OCR. Worker, jádro a jazykové soubory se při `npm run build` kopírují / stahují do výstupu a volají se jako **stejná doména** jako stránka (výchozí CDN z jsdelivr často blokují rozšíření v prohlížeči). **Next.js v kořeni** zůstává volitelný pro lokální vývoj nebo plnou verzi s Prisma.
+**Čtení účtenek a PDF** ve výchozím stavu běží **v prohlížeči** (Tesseract + PDF.js). Volitelně můžeš zapnout **Gemini Vision** přes nasazenou Next aplikaci na Vercelu: do env na Vercelu dej **`GEMINI_API_KEY`** (klíč z [Google AI Studio](https://aistudio.google.com/apikey)), na GitHub Pages build přidej **`VITE_NEXT_API_ORIGIN`** a **`VITE_USE_GEMINI_EXTRACT=1`** (nebo repo variable `VITE_USE_GEMINI_EXTRACT`). Prohlížeč pak zavolá `POST /api/extract-document` se Supabase JWT; server zkusí Gemini a při selhání / krátkém textu spadne na Tesseract jako dřív. API klíč zůstává jen na serveru.
 
 ### Jednorázově na GitHubu
 

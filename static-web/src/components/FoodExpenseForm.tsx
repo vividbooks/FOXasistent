@@ -9,6 +9,8 @@ import {
   receiptExtLower,
 } from "../lib/receipt-formats";
 import { suggestAmountKcFromText } from "../lib/suggest-amount-from-text";
+import type { Session } from "@supabase/supabase-js";
+import { useAuth } from "../auth/AuthContext";
 import { deriveExpenseTitleFromDocumentText } from "../../../lib/expense-display-title";
 import { configuredReceiptBucket } from "../lib/receipt-storage-url";
 import { supabase } from "../lib/supabase";
@@ -39,6 +41,17 @@ type Props = {
   title?: string;
 };
 
+function geminiRemoteExtractOpts(session: Session | null):
+  | { apiOrigin: string; accessToken: string }
+  | undefined {
+  const apiBase = import.meta.env.VITE_NEXT_API_ORIGIN?.replace(/\/$/, "");
+  const on =
+    import.meta.env.VITE_USE_GEMINI_EXTRACT === "1" ||
+    import.meta.env.VITE_USE_GEMINI_EXTRACT === "true";
+  if (!on || !apiBase || !session?.access_token) return undefined;
+  return { apiOrigin: apiBase, accessToken: session.access_token };
+}
+
 /** Stejná logika jako u náhledů (výchozí fakturyauctenky). */
 const BUCKET = configuredReceiptBucket();
 
@@ -54,6 +67,7 @@ function formatSupabaseError(e: unknown): string {
 }
 
 export function FoodExpenseForm({ appUserId, onSuccess, title = "Náklady na jídlo" }: Props) {
+  const { session } = useAuth();
   const inputPhotoRef = useRef<HTMLInputElement>(null);
   const inputUploadRef = useRef<HTMLInputElement>(null);
   const saveFeedbackRef = useRef<HTMLDivElement>(null);
@@ -322,7 +336,11 @@ export function FoodExpenseForm({ appUserId, onSuccess, title = "Náklady na jí
       try {
         const { extractDocumentClient } = await import("../lib/extract-document-client");
         if (ac.signal.aborted) return;
-        const j = await extractDocumentClient(file);
+        const remote = geminiRemoteExtractOpts(session);
+        const j = await extractDocumentClient(file, {
+          remote,
+          signal: ac.signal,
+        });
         if (ac.signal.aborted) return;
         const text = (j.text ?? "").trim();
         setExtractedText(text);
@@ -341,7 +359,7 @@ export function FoodExpenseForm({ appUserId, onSuccess, title = "Náklady na jí
     })();
 
     return () => ac.abort();
-  }, [file, mode, step]);
+  }, [file, mode, step, session?.access_token]);
 
   const parsedReceipt = useMemo(() => parseReceiptFromText(extractedText), [extractedText]);
 
