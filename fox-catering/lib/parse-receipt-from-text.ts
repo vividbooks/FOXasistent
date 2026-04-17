@@ -9,7 +9,7 @@ export type ParsedReceipt = {
 };
 
 function parsePriceToken(raw: string): number | null {
-  let t = raw.trim().replace(/\s/g, "").replace(/\u00a0/g, "");
+  const t = raw.trim().replace(/\s/g, "").replace(/\u00a0/g, "");
   if (!/^\d/.test(t)) return null;
   const comma = t.indexOf(",");
   let intStr: string;
@@ -130,7 +130,7 @@ export function parseReceiptFromText(text: string): ParsedReceipt {
     const m = line.match(linePrice);
     if (!m) continue;
 
-    let label = m[1].trim().replace(/\s+/g, " ");
+    const label = m[1].trim().replace(/\s+/g, " ");
     const priceRaw = m[2];
     if (label.length < 2) continue;
     if (/^\d+[,.]?\d*\s*[x×]\s*\d/i.test(label)) continue;

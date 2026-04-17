@@ -32,7 +32,7 @@ export function suggestAmountKcFromText(text: string): number | null {
 }
 
 function parseCzechMoneyNumber(raw: string): number | null {
-  let t = raw.trim().replace(/\s/g, "").replace(/\u00a0/g, "");
+  const t = raw.trim().replace(/\s/g, "").replace(/\u00a0/g, "");
   if (!/^\d/.test(t)) return null;
 
   const comma = t.indexOf(",");
