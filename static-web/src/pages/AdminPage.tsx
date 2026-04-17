@@ -15,11 +15,12 @@ import type { Period } from "../lib/ranges";
 import bcrypt from "bcryptjs";
 import { useCallback, useEffect, useState, type FormEvent } from "react";
 import { Link, useNavigate } from "react-router-dom";
+import type { Session } from "@supabase/supabase-js";
 import { supabase } from "../lib/supabase";
 
 export default function AdminPage() {
   const navigate = useNavigate();
-  const { displayName, appUserId, signOut } = useAuth();
+  const { displayName, appUserId, session, signOut } = useAuth();
   const [period, setPeriod] = useState<Period>("day");
   const [summary, setSummary] = useState<Summary | null>(null);
   const [users, setUsers] = useState<UserRow[]>([]);
@@ -165,12 +166,9 @@ export default function AdminPage() {
 
         {tab === "tym" && (
           <section className="space-y-6">
-            <NewEmployeeForm onDone={() => void load()} />
+            <NewEmployeeForm session={session} onDone={() => void load()} />
             <div className="rounded-2xl bg-white p-6 shadow">
               <h3 className="font-medium text-zinc-900">Zaměstnanci</h3>
-              <p className="mt-2 text-xs text-amber-800">
-                Po přidání člověka spusť lokálně <code className="rounded bg-zinc-100 px-1">npm run sync-auth</code>, ať má přihlášení na Pages (Supabase Auth).
-              </p>
               <ul className="mt-3 space-y-4">
                 {users
                   .filter((u) => u.role === "EMPLOYEE")
@@ -219,7 +217,13 @@ export default function AdminPage() {
   );
 }
 
-function NewEmployeeForm({ onDone }: { onDone: () => void }) {
+function NewEmployeeForm({
+  session,
+  onDone,
+}: {
+  session: Session | null;
+  onDone: () => void;
+}) {
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
   const [name, setName] = useState("");
@@ -239,9 +243,10 @@ function NewEmployeeForm({ onDone }: { onDone: () => void }) {
         setBusy(false);
         return;
       }
+      const id = crypto.randomUUID();
       const hash = await bcrypt.hash(password, 10);
       const { error } = await supabase.from("User").insert({
-        id: crypto.randomUUID(),
+        id,
         username: login,
         passwordHash: hash,
         name: name.trim(),
@@ -250,6 +255,27 @@ function NewEmployeeForm({ onDone }: { onDone: () => void }) {
         createdAt: new Date().toISOString(),
       });
       if (error) throw new Error(error.message);
+
+      const apiBase = import.meta.env.VITE_NEXT_API_ORIGIN?.replace(/\/$/, "");
+      const token = session?.access_token;
+      if (apiBase && token) {
+        const pr = await fetch(`${apiBase}/api/admin/provision-supabase-auth`, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${token}`,
+          },
+          body: JSON.stringify({ userId: id }),
+        });
+        if (!pr.ok) {
+          const body = (await pr.json().catch(() => null)) as { error?: string } | null;
+          throw new Error(
+            body?.error ??
+              `Účet v databázi je vytvořený, ale přihlášení na Pages se nepodařilo nastavit (${pr.status}). Zkontroluj VITE_NEXT_API_ORIGIN a deploy na Vercelu, případně npm run sync-auth.`,
+          );
+        }
+      }
+
       setUsername("");
       setPassword("");
       setName("");

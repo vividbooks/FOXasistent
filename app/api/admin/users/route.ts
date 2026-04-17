@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { auth } from "@/auth";
 import { prisma } from "@/lib/prisma";
+import { provisionSupabaseAuthForUserById } from "@/lib/sync-supabase-auth-for-user";
 import bcrypt from "bcryptjs";
 import { z } from "zod";
 
@@ -69,5 +70,11 @@ export async function POST(req: Request) {
     },
   });
 
-  return NextResponse.json({ user });
+  const authProvision = await provisionSupabaseAuthForUserById(user.id);
+
+  return NextResponse.json({
+    user,
+    supabaseAuthOk: authProvision.ok,
+    supabaseAuthError: authProvision.ok ? null : authProvision.error,
+  });
 }

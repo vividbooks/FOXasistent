@@ -37,7 +37,10 @@ type Props = {
   title?: string;
 };
 
-const BUCKET = "receipts";
+/** Musí přesně odpovídat názvu bucketu ve Storage (viz VITE_SUPABASE_STORAGE_BUCKET). */
+const BUCKET =
+  (import.meta.env.VITE_SUPABASE_STORAGE_BUCKET as string | undefined)?.trim() ||
+  "receipts";
 
 function formatSupabaseError(e: unknown): string {
   if (e == null) return "Neznámá chyba";
@@ -223,7 +226,9 @@ export function FoodExpenseForm({ appUserId, onSuccess, title = "Náklady na jí
 
     try {
       if (!appUserId?.trim()) {
-        throw new Error("Chybí vazba účtu (app_user_id). Spusť npm run sync-auth a znovu se přihlas.");
+        throw new Error(
+          "Chybí propojení účtu s aplikací. Odhlásit se a znovu přihlásit; když to nepomůže, dej vědět administrátorovi.",
+        );
       }
 
       const dateIso = new Date(date + "T12:00:00").toISOString();
@@ -267,13 +272,13 @@ export function FoodExpenseForm({ appUserId, onSuccess, title = "Náklady na jí
       onSuccess();
       reset();
       setSaveInfo(
-        "Uloženo. Účtenka a soubor jsou v databázi a bucketu „receipts“. V seznamu níže nastav období podle data nákupu.",
+        `Uloženo. Účtenka a soubor jsou v databázi a úložišti („${BUCKET}“). V seznamu níže nastav období podle data nákupu.`,
       );
     } catch (err) {
       const msg = err instanceof Error ? err.message : "Chyba";
       setError(
         /row-level security|rls|permission denied|policy/i.test(msg)
-          ? `${msg} — typicky chybí sync-auth (metadata app_user_id) nebo politika u bucketu „receipts“ (viz supabase/storage-receipts-spa.sql).`
+          ? `${msg} — typicky jde o přihlášení / oprávnění v Supabase nebo politiku u bucketu „${BUCKET}“ (viz supabase/storage-*.sql).`
           : msg,
       );
     } finally {

@@ -272,10 +272,14 @@ function NewEmployeeForm({ onDone }: { onDone: () => void }) {
   const [name, setName] = useState("");
   const [rate, setRate] = useState("200");
   const [busy, setBusy] = useState(false);
+  const [err, setErr] = useState<string | null>(null);
+  const [warn, setWarn] = useState<string | null>(null);
 
   async function submit(e: React.FormEvent) {
     e.preventDefault();
     setBusy(true);
+    setErr(null);
+    setWarn(null);
     const r = await fetch("/api/admin/users", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -287,12 +291,24 @@ function NewEmployeeForm({ onDone }: { onDone: () => void }) {
       }),
     });
     setBusy(false);
-    if (r.ok) {
-      setUsername("");
-      setPassword("");
-      setName("");
-      onDone();
+    const data = (await r.json().catch(() => ({}))) as {
+      error?: string;
+      supabaseAuthOk?: boolean;
+      supabaseAuthError?: string | null;
+    };
+    if (!r.ok) {
+      setErr(data.error ?? "Nepodařilo se uložit");
+      return;
     }
+    if (data.supabaseAuthOk === false && data.supabaseAuthError) {
+      setWarn(
+        `Uloženo v databázi, ale přihlášení na GitHub Pages se nepodařilo: ${data.supabaseAuthError}. Zkontroluj SUPABASE_SERVICE_ROLE_KEY na Vercelu nebo spusť npm run sync-auth.`,
+      );
+    }
+    setUsername("");
+    setPassword("");
+    setName("");
+    onDone();
   }
 
   return (
@@ -301,6 +317,8 @@ function NewEmployeeForm({ onDone }: { onDone: () => void }) {
       className="rounded-2xl bg-white p-6 shadow"
     >
       <h3 className="font-medium text-zinc-900">Nový zaměstnanec</h3>
+      {err ? <p className="mt-2 text-sm text-red-700">{err}</p> : null}
+      {warn ? <p className="mt-2 text-sm text-amber-800">{warn}</p> : null}
       <div className="mt-4 grid gap-3 sm:grid-cols-2">
         <input
           className="rounded-lg border border-zinc-300 px-3 py-2"

@@ -1,6 +1,8 @@
 import { createSupabaseAdmin } from "@/lib/supabase/admin";
 
-const BUCKET = "receipts";
+function storageBucketId(): string {
+  return process.env.SUPABASE_STORAGE_BUCKET?.trim() || "receipts";
+}
 
 function contentTypeForUpload(mime: string, extLower: string): string {
   if (mime && mime !== "application/octet-stream") return mime;
@@ -43,6 +45,6 @@ export async function uploadReceiptToSupabase(opts: {
     throw new Error(error.message || "Nahrání souboru do úložiště selhalo.");
   }
 
-  const { data } = supabase.storage.from(BUCKET).getPublicUrl(path);
+  const { data } = supabase.storage.from(bucket).getPublicUrl(path);
   return data.publicUrl;
 }

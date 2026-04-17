@@ -1,6 +1,8 @@
 -- Spusť v Supabase SQL Editoru, pokud nahrávání účtenek z aplikace (SPA) hlásí RLS / permission.
--- V Storage musí existovat bucket s id přesně `receipts` (malá písmena). Může být veřejný nebo soukromý;
--- aplikace ukládá veřejné URL z getPublicUrl — pro soukromý bucket zvaž signed URL (zatím neřešíme).
+-- Bucket id musí sedět s proměnnou VITE_SUPABASE_STORAGE_BUCKET / SUPABASE_STORAGE_BUCKET (výchozí „receipts“).
+-- Jiný název bucketu (např. fakturyauctenky): buď v celém souboru nahraď 'receipts' → tvůj id,
+-- nebo použij hotový skript storage-fakturyauctenky-spa.sql.
+-- Bucket může být veřejný nebo soukromý; aplikace používá getPublicUrl.
 
 DROP POLICY IF EXISTS "fox_receipts_select_public" ON storage.objects;
 CREATE POLICY "fox_receipts_select_public" ON storage.objects FOR SELECT TO public

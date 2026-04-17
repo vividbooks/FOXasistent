@@ -129,7 +129,7 @@ export async function POST(req: Request) {
         return NextResponse.json(
           {
             error:
-              "Nahrání přílohy do úložiště selhalo. Zkontrolujte Supabase (bucket „receipts“, proměnné prostředí).",
+              "Nahrání přílohy do úložiště selhalo. Zkontrolujte Supabase (bucket = SUPABASE_STORAGE_BUCKET, výchozí receipts).",
           },
           { status: 500 },
         );

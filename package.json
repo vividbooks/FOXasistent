@@ -9,7 +9,7 @@
     "start": "next start",
     "lint": "eslint .",
     "db:seed": "npx tsx prisma/seed.ts",
-    "sync-auth": "npx prisma generate && node --env-file=.env scripts/sync-auth-users.mjs"
+    "sync-auth": "npx prisma generate && node --env-file=.env ./node_modules/tsx/dist/cli.mjs scripts/sync-auth-users.ts"
   },
   "prisma": {
     "seed": "npx tsx prisma/seed.ts"

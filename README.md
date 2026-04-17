@@ -42,9 +42,10 @@ Kontrola: otevři `https://TVOJE-APP.vercel.app/api/health` — má být `"ok":t
 ### Databáze, RLS, Auth
 
 1. `npx prisma migrate deploy` — včetně RLS na `User`, `Expense`, `Shift`, `LocationPing` (JWT `user_metadata.app_user_id` + `role`).
-2. **`npm run sync-auth`** — Auth uživatelé `jméno@fox-app.local` + `authUserId` v `User`.
-3. Pokud **nahrávání do bucketu `receipts`** z prohlížeče hlásí RLS, spusť v Supabase SQL Editoru [`supabase/storage-receipts-spa.sql`](supabase/storage-receipts-spa.sql).
-4. Přihlášení na Pages: **uživatelské jméno** + **`FOX_SHARED_PASSWORD`**. Po přidání zaměstnance v admin rozhraní znovu **`npm run sync-auth`**, ať má účet v Supabase Auth.
+2. **`npm run sync-auth`** (volitelné hromadně) — doplní Auth uživatele `jméno@fox-app.local` + `authUserId` v `User`. Po přidání zaměstnance z adminu na **Vercelu** nebo z **GitHub Pages** (s nastaveným `VITE_NEXT_API_ORIGIN`) se Auth účet vytvoří **automaticky**.
+3. Na GitHub Pages buildu nastav v [`static-web/.env.production`](static-web/.env.production) nebo v CI proměnnou **`VITE_NEXT_API_ORIGIN`** = kořenová URL Next aplikace na Vercelu (bez `/` na konci), např. `https://tvoje-app.vercel.app`. Volitelně na Vercelu **`PAGES_ADMIN_ALLOWED_ORIGINS`** = `https://tvuj-uzivatel.github.io` (CSV, pokud chceš CORS jen z Pages).
+4. **Storage:** název bucketu pro účtenky musí sedět s [`static-web/.env.production`](static-web/.env.production) → **`VITE_SUPABASE_STORAGE_BUCKET`** (výchozí v kódu je `receipts`). Jinak hláška *Bucket not found*. Pro bucket `fakturyauctenky` nastav tuto proměnnou a spusť [`supabase/storage-fakturyauctenky-spa.sql`](supabase/storage-fakturyauctenky-spa.sql) (nebo obecný [`storage-receipts-spa.sql`](supabase/storage-receipts-spa.sql) po úpravě id). Na Vercelu doplň **`SUPABASE_STORAGE_BUCKET`** pro serverové nahrávání.
+5. Přihlášení na Pages: **uživatelské jméno** + **`FOX_SHARED_PASSWORD`**.
 
 Adresa: `https://<uživatel>.github.io/FOXasistent/#/login` (hash routing kvůli GitHub Pages).
 
