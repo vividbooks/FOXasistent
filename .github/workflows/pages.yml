@@ -34,7 +34,7 @@ jobs:
           # Volitelné: nastav v repo Settings → Variables (např. VERCEL_APP_URL)
           VITE_NEXT_API_ORIGIN: ${{ vars.VERCEL_APP_URL }}
           VITE_SUPABASE_STORAGE_BUCKET: ${{ vars.SUPABASE_STORAGE_BUCKET }}
-          VITE_USE_GEMINI_EXTRACT: ${{ vars.VITE_USE_GEMINI_EXTRACT }}
+          # VITE_USE_GEMINI_EXTRACT: ve static-web/.env.production (Git), aby prázdná repo Variable build nevypla
         run: |
           npm ci
           npm run build
