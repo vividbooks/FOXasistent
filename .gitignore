@@ -1,13 +1,35 @@
 .DS_Store
 *.log
+
+# Next.js (app v kořeni repa)
+/node_modules
+/.pnp
+.pnp.*
+.yarn/*
+!.yarn/patches
+!.yarn/plugins
+!.yarn/releases
+!.yarn/versions
+/coverage
+/.next/
+/out/
+/build
+*.pem
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+.pnpm-debug.log*
+*.tsbuildinfo
+next-env.d.ts
+.vercel
+/prisma/dev.db
+/prisma/dev.db-journal
+/public/uploads
+
+# env — nepoužívej široké .env* na kořeni kvůli .env.example
 .env
 .env.*.local
+!.env.example
 
-# Fox Catering
-fox-catering/node_modules/
-fox-catering/.next/
-fox-catering/prisma/dev.db
-fox-catering/prisma/dev.db-journal
-
-# Heisse Preise (sibling project)
+# Heisse Preise (sourozenec v pracovní složce)
 heissepreise/node_modules/

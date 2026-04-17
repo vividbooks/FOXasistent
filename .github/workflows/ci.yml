@@ -1,14 +1,10 @@
-name: CI fox-catering
+name: CI
 
 on:
   push:
     branches: [main]
   pull_request:
     branches: [main]
-
-defaults:
-  run:
-    working-directory: fox-catering
 
 jobs:
   build:
@@ -19,7 +15,7 @@ jobs:
         with:
           node-version: "22"
           cache: npm
-          cache-dependency-path: fox-catering/package-lock.json
+          cache-dependency-path: package-lock.json
       - name: Install
         run: npm ci
       - name: Prisma generate
