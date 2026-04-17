@@ -38,7 +38,30 @@ async function main() {
     },
   });
 
-  console.log("Seed hotovo. Admin: admin / " + password + " | Zaměstnanec: jan / demo123");
+  const sharedForVault =
+    process.env.FOX_SHARED_PASSWORD?.trim() || process.env.ADMIN_PASSWORD?.trim() || password;
+  await prisma.teamCredential.upsert({
+    where: { id: "seed_fox_admin_login" },
+    create: {
+      id: "seed_fox_admin_login",
+      title: "Přihlášení admin (FOX)",
+      login: "admin",
+      password: sharedForVault,
+      notes: "Heslo = FOX_SHARED_PASSWORD (Pages + Vercel + Supabase Auth po sync-auth).",
+      sortOrder: -100,
+    },
+    update: {
+      login: "admin",
+      password: sharedForVault,
+      notes: "Heslo = FOX_SHARED_PASSWORD (Pages + Vercel + Supabase Auth po sync-auth).",
+    },
+  });
+
+  console.log(
+    "Seed hotovo. Admin: admin / " +
+      password +
+      " | Zaměstnanec: jan / demo123 | TeamCredential: řádek „Přihlášení admin (FOX)“ (heslo z FOX_SHARED_PASSWORD).",
+  );
 }
 
 main()
