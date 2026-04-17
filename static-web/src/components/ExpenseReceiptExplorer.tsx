@@ -3,6 +3,7 @@ import {
   groupExpensesByWeekAndDay,
   type ExpenseListItem,
 } from "../lib/group-expenses";
+import { normalizeReceiptPublicUrl } from "../lib/receipt-storage-url";
 import { format } from "date-fns";
 import { useEffect, useMemo, useState } from "react";
 
@@ -20,19 +21,20 @@ function kindLabel(kind: string): string {
 }
 
 function ReceiptPreview({ url }: { url: string }) {
-  const isPdf = url.toLowerCase().endsWith(".pdf");
+  const src = normalizeReceiptPublicUrl(url);
+  const isPdf = src.toLowerCase().endsWith(".pdf");
   if (isPdf) {
     return (
       <iframe
         title="Náhled PDF"
-        src={url}
+        src={src}
         className="mt-3 h-[min(65vh,560px)] w-full rounded-xl border border-zinc-200 bg-zinc-50"
       />
     );
   }
   return (
     <img
-      src={url}
+      src={src}
       alt="Příloha k dokladu"
       className="mt-3 max-h-[min(65vh,560px)] w-full rounded-xl border border-zinc-200 object-contain"
     />
@@ -76,7 +78,7 @@ function ExpenseDetailPanel({ e }: { e: ExpenseListItem }) {
           <p className="text-xs font-medium uppercase tracking-wide text-zinc-500">Příloha</p>
           <ReceiptPreview url={e.receiptUrl} />
           <a
-            href={e.receiptUrl}
+            href={normalizeReceiptPublicUrl(e.receiptUrl)}
             target="_blank"
             rel="noopener noreferrer"
             className="mt-2 inline-block text-sm font-medium text-sky-700 underline"
