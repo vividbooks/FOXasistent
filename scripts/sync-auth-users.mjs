@@ -1,6 +1,6 @@
 /**
- * Jednorázově: vytvoří uživatele v Supabase Auth (email = username@fox-app.local)
- * a zapíše authUserId do tabulky User. Spusť lokálně s .env (SERVICE_ROLE + DATABASE).
+ * Uživatele v Supabase Auth (email = username@fox-app.local): vytvoří chybějící,
+ * u existujících s authUserId sjednotí heslo na FOX_SHARED_PASSWORD. Spusť s .env.
  *
  *   node scripts/sync-auth-users.mjs
  */
@@ -26,7 +26,12 @@ async function main() {
   for (const u of users) {
     const email = `${u.username}@fox-app.local`;
     if (u.authUserId) {
-      console.log("Skip (má auth):", u.username);
+      const { error } = await supabase.auth.admin.updateUserById(u.authUserId, {
+        password: shared,
+        user_metadata: { app_user_id: u.id, role: u.role, name: u.name },
+      });
+      if (error) console.error("Auth update hesla", u.username, error.message);
+      else console.log("Heslo sync:", u.username, "→", email);
       continue;
     }
     const { data, error } = await supabase.auth.admin.createUser({
