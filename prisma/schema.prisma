@@ -62,3 +62,18 @@ model Expense {
   @@index([date])
   @@index([createdById])
 }
+
+/// Sdílené přihlašovací údaje (interní). Hesla jsou v DB jako plain text — spoléhejte na RLS a že repozitář/klíče nejsou veřejné.
+model TeamCredential {
+  id        String   @id @default(cuid())
+  title     String
+  login     String?
+  password  String
+  url       String?
+  notes     String?
+  sortOrder Int      @default(0)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([sortOrder])
+}

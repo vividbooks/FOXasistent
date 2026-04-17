@@ -44,3 +44,7 @@ Plná Next.js aplikace na Pages nejde (žádný Node server). V repu je **`stati
 3. Na Pages: přihlášení **jménem** (`admin` / `jan`) a **`FOX_SHARED_PASSWORD`**.
 
 Úplná funkcionalita (účtenky, API) zatím zůstává na **Vercelu**; Pages verze je vstup přes Supabase Auth.
+
+### Účty a hesla (sdílená tabulka)
+
+V Postgresu je tabulka **`TeamCredential`** (Prisma model stejného jména): název služby, login, heslo (plain text — interní), URL, poznámka. **RLS** povoluje SELECT/INSERT/UPDATE/DELETE jen roli `authenticated` (přihlášení přes Supabase Auth na Pages). Po přihlášení se tabulka zobrazí a jde přidávat / mazat řádky.
