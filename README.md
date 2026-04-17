@@ -38,10 +38,12 @@ Stránka bude typicky na: `https://vividbooks.github.io/FOXasistent/` (přesné 
 
 ## Doporučené nasazení aplikace (Vercel + Supabase)
 
-1. Import repozitáře do [Vercel](https://vercel.com) (root *nebo* nastavte **Root Directory** na `fox-catering`).
-2. V *Environment Variables* zkopírujte hodnoty z `.env` (včetně `DATABASE_URL`, `AUTH_SECRET`, `NEXT_PUBLIC_SUPABASE_URL`, `SUPABASE_SERVICE_ROLE_KEY`).
-3. Build: `npm run build`, output standardní pro Next.js.
-4. Po deployi nastavte v produkci stejné proměnné jako lokálně.
+1. Import repozitáře do [Vercel](https://vercel.com) a v **Settings → General → Root Directory** nastavte **`fox-catering`** (povinné pro tento monorepo).
+2. V **Settings → Environment Variables** přidejte stejné hodnoty jako v lokálním `.env`: mimo jiné `DATABASE_URL`, **`DIRECT_URL`**, `AUTH_SECRET`, `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY`, `SUPABASE_SERVICE_ROLE_KEY`.
+3. Po pushi na `main` zkontrolujte **Deployments** — musí být alespoň jeden **zelený** Production build. Dokud build spadne nebo neproběhne, u `*.vercel.app` uvidíte **404 NOT_FOUND**.
+4. Log chyby otevřete kliknutím na červený deployment → **Building** / **Logs**.
+
+Soubor `fox-catering/vercel.json` a `postinstall` (`prisma generate`) pomáhají, aby Vercel správně sestavil Next.js + Prisma.
 
 CI workflow v `.github/workflows/ci.yml` kontroluje build `fox-catering` při každém pushi.
 
