@@ -1,5 +1,38 @@
 import { createWorker, type Worker } from "tesseract.js";
 
+/**
+ * Tesseract ve výchozím stavu tahá worker + jádro + jazyky z jsdelivr — to na GitHub Pages často
+ * zablokuje blokovač reklam / firemní proxy. Worker navíc v blob režimu volá importScripts(workerPath):
+ * musí to být absolutní URL na stejnou doménu jako aplikace.
+ * Worker + core kopíruje Vite do /tesseract/*; jazyky jsou v /tesseract-lang (public + skript při buildu).
+ */
+function tesseractSameOriginAssets(): {
+  workerPath: string;
+  corePath: string;
+  langPath: string;
+} {
+  if (typeof window === "undefined") {
+    return { workerPath: "", corePath: "", langPath: "" };
+  }
+  const baseTrailing = `${window.location.origin}${(import.meta.env.BASE_URL || "/").replace(/\/?$/, "/")}`;
+  const abs = (rel: string) => new URL(rel.replace(/^\//, ""), baseTrailing).href;
+  return {
+    workerPath: abs("tesseract/worker.min.js"),
+    corePath: abs("tesseract/core").replace(/\/$/, ""),
+    langPath: abs("tesseract-lang").replace(/\/$/, ""),
+  };
+}
+
+async function createTesseractWorker(): Promise<Worker> {
+  const o = tesseractSameOriginAssets();
+  return createWorker("ces+eng", 1, {
+    workerPath: o.workerPath,
+    corePath: o.corePath,
+    langPath: o.langPath,
+    logger: () => {},
+  });
+}
+
 /** Max. počet stran PDF pro OCR (čas / paměť v prohlížeči). */
 const PDF_OCR_MAX_PAGES = 30;
 /** Šířka rasteru pro OCR (px). */
@@ -87,7 +120,7 @@ async function extractImageClient(file: File): Promise<{ text: string; hint?: st
   const bitmap = await bitmapFromFile(file, nameLower);
   try {
     const canvas = canvasFromBitmap(bitmap);
-    const worker = await createWorker("ces+eng", 1, { logger: () => {} });
+    const worker = await createTesseractWorker();
     try {
       const best = await ocrImageBest(worker, canvas);
       return {
@@ -148,7 +181,7 @@ async function extractPdfClient(file: File): Promise<{
     pagesToRaster = pagesToRaster.slice(0, PDF_OCR_MAX_PAGES);
   }
 
-  const worker = await createWorker("ces+eng", 1, { logger: () => {} });
+  const worker = await createTesseractWorker();
   try {
     const ocrByPage = new Map<number, string>();
 

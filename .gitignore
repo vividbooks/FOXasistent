@@ -30,6 +30,7 @@ next-env.d.ts
 /docs/
 
 static-web/node_modules/
+static-web/public/tesseract-lang/*.gz
 
 # env — nepoužívej široké .env* na kořeni kvůli .env.example
 .env

@@ -4,7 +4,8 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
-    "build": "vite build"
+    "prep:tesseract-lang": "node scripts/download-tesseract-lang.mjs",
+    "build": "npm run prep:tesseract-lang && vite build"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.103.3",
@@ -24,6 +25,7 @@
     "@types/react-dom": "^19",
     "@vitejs/plugin-react": "^4.4.0",
     "typescript": "^5.7.3",
-    "vite": "^6.3.5"
+    "vite": "^6.3.5",
+    "vite-plugin-static-copy": "^2.3.2"
   }
 }

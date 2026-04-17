@@ -31,7 +31,7 @@ Kontrola: otevři `https://TVOJE-APP.vercel.app/api/health` — má být `"ok":t
 
 **`static-web/`** je **React + Vite SPA** napojená přímo na **Supabase** (Auth, Postgres, Storage): směny, poloha, náklady, účtenky (nahrání souboru), admin přehled, tým, sdílené účty (`TeamCredential`). Build jde do **`docs/`**, deploy řeší [`.github/workflows/pages.yml`](.github/workflows/pages.yml).
 
-**Čtení účtenek a PDF** běží **přímo v prohlížeči** (Tesseract + PDF.js) — na GitHub Pages nepotřebuješ Vercel ani jiný server jen kvůli OCR. **Next.js v kořeni** zůstává volitelný pro lokální vývoj nebo plnou verzi s Prisma.
+**Čtení účtenek a PDF** běží **přímo v prohlížeči** (Tesseract + PDF.js) — na GitHub Pages nepotřebuješ Vercel ani jiný server jen kvůli OCR. Worker, jádro a jazykové soubory se při `npm run build` kopírují / stahují do výstupu a volají se jako **stejná doména** jako stránka (výchozí CDN z jsdelivr často blokují rozšíření v prohlížeči). **Next.js v kořeni** zůstává volitelný pro lokální vývoj nebo plnou verzi s Prisma.
 
 ### Jednorázově na GitHubu
 
