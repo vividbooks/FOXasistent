@@ -16,6 +16,7 @@ const eslintConfig = [
       "node_modules/**",
       "public/**",
       "docs/**",
+      "static-web/**",
       "heissepreise/**",
       "catering/**",
       ".agents/**",

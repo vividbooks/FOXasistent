@@ -26,6 +26,11 @@ next-env.d.ts
 /prisma/dev.db-journal
 /public/uploads
 
+# GitHub Pages: generuje `static-web` (Vite) → docs/; CI builduje znovu, necommituj výstup
+/docs/
+
+static-web/node_modules/
+
 # env — nepoužívej široké .env* na kořeni kvůli .env.example
 .env
 .env.*.local

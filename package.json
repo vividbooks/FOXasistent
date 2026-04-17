@@ -8,7 +8,8 @@
     "build": "next build",
     "start": "next start",
     "lint": "eslint .",
-    "db:seed": "npx tsx prisma/seed.ts"
+    "db:seed": "npx tsx prisma/seed.ts",
+    "sync-auth": "npx prisma generate && node --env-file=.env scripts/sync-auth-users.mjs"
   },
   "prisma": {
     "seed": "npx tsx prisma/seed.ts"

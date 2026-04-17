@@ -1,5 +1,4 @@
-# Nasadí obsah docs/ na GitHub Pages (jen statická stránka).
-# V repo: Settings → Pages → Source: GitHub Actions
+# Statická app ze static-web/ → GitHub Pages. Vite načte static-web/.env.production (veřejný Supabase klíč).
 name: Deploy GitHub Pages
 
 on:
@@ -24,6 +23,16 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+          cache-dependency-path: static-web/package-lock.json
+      - name: Install & build static site
+        working-directory: static-web
+        run: |
+          npm ci
+          npm run build
       - uses: actions/configure-pages@v5
       - uses: actions/upload-pages-artifact@v3
         with:

@@ -27,6 +27,20 @@ npm run dev
 
 Kontrola: otevři `https://TVOJE-APP.vercel.app/api/health` — má být `"ok":true` a `"users"` alespoň 1.
 
-## GitHub Pages
+## GitHub Pages (statická přihláška)
 
-Složka `docs/` — často přesměruje na Vercel.
+Plná Next.js aplikace na Pages nejde (žádný Node server). V repu je **`static-web/`** (Vite): po buildu se výstup píše do **`docs/`** a workflow [`.github/workflows/pages.yml`](.github/workflows/pages.yml) ho nasadí na Pages.
+
+### Jednorázově na GitHubu
+
+1. **Název repozitáře** musí sedět s `base` v [`static-web/vite.config.ts`](static-web/vite.config.ts) (teď `/FOXasistent/`). Jinak uprav `base` na `/<tvůj-repo>/`.
+2. V **Settings → Pages** nastav zdroj **GitHub Actions** (ne „Deploy from branch“). Při prvním deployi může GitHub chtít jednorázové schválení prostředí `github-pages`.
+3. **Bez ručního zadávání Secrets:** veřejný Supabase URL a publishable klíč jsou v [`static-web/.env.production`](static-web/.env.production) (stejně by stejně končily v prohlížeči). Po pushi na `main` workflow sestaví `static-web/` a nasadí `docs/`.
+
+### Databáze a Supabase Auth
+
+1. `npx prisma migrate deploy` (sloupec `User.authUserId`).
+2. Jednou **`npm run sync-auth`** (lokálně s `.env`: DB + service role + `FOX_SHARED_PASSWORD`) — vytvoří Auth uživatele `jméno@fox-app.local` a doplní `authUserId`.
+3. Na Pages: přihlášení **jménem** (`admin` / `jan`) a **`FOX_SHARED_PASSWORD`**.
+
+Úplná funkcionalita (účtenky, API) zatím zůstává na **Vercelu**; Pages verze je vstup přes Supabase Auth.
