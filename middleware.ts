@@ -12,6 +12,10 @@ export default auth((req) => {
     return NextResponse.next();
   }
 
+  if (pathname.startsWith("/api/health")) {
+    return NextResponse.next();
+  }
+
   if (!logged) {
     if (pathname === "/login") return NextResponse.next();
     return NextResponse.redirect(new URL("/login", req.nextUrl));

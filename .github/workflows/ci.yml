@@ -22,12 +22,14 @@ jobs:
         env:
           DATABASE_URL: postgresql://ci:ci@127.0.0.1:5432/ci?schema=public
           DIRECT_URL: postgresql://ci:ci@127.0.0.1:5432/ci?schema=public
+          PRISMA_DISABLE_PREPARED_STATEMENTS: "true"
         run: npx prisma generate
       - name: Lint
         run: npm run lint
       - name: Build
         env:
           AUTH_SECRET: ci-build-placeholder-secret-min-32-chars!!
+          PRISMA_DISABLE_PREPARED_STATEMENTS: "true"
           DATABASE_URL: postgresql://ci:ci@127.0.0.1:5432/ci?schema=public
           DIRECT_URL: postgresql://ci:ci@127.0.0.1:5432/ci?schema=public
           NEXT_PUBLIC_SUPABASE_URL: https://hxsdhfszkvnamgmnuuuc.supabase.co

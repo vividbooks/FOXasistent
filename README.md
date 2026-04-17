@@ -26,7 +26,7 @@ V Storage bucket **`receipts`** (veřejný pro náhledy).
 
 1. [vercel.com/new](https://vercel.com/new) → Import **vividbooks/FOXasistent**.
 2. **Neměň Root Directory** — nech prázdné / kořen repa (aplikace je už v kořeni).
-3. **Environment Variables** — zkopíruj z lokálního `.env` (včetně `DATABASE_URL`, `DIRECT_URL`, `AUTH_SECRET`, **`AUTH_URL`** = přesná produkční URL bez `/` na konci, např. `https://project-dusf9.vercel.app`), všechny `NEXT_PUBLIC_*`, `SUPABASE_SERVICE_ROLE_KEY`.
+3. **Environment Variables** — zkopíruj z lokálního `.env` (včetně `DATABASE_URL`, `DIRECT_URL`, **`PRISMA_DISABLE_PREPARED_STATEMENTS=true`** u Supabase pooleru, `AUTH_SECRET`, **`AUTH_URL`** = přesná produkční URL bez `/` na konci), všechny `NEXT_PUBLIC_*`, `SUPABASE_SERVICE_ROLE_KEY`.
 4. Deploy.
 
 Statická stránka z `docs/` zůstává pro GitHub Pages (přesměrování na Vercel).

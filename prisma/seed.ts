@@ -32,7 +32,9 @@ async function main() {
       hourlyRateKc: 200,
     },
     update: {
+      passwordHash: demoHash,
       hourlyRateKc: 200,
+      name: "Jan Novák",
     },
   });
 

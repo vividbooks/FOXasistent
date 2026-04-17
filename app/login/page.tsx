@@ -22,7 +22,24 @@ export default function LoginPage() {
     });
     setLoading(false);
     if (res?.error) {
-      setError("Špatné jméno nebo heslo.");
+      let msg = "Špatné jméno nebo heslo.";
+      try {
+        const h = await fetch("/api/health", { cache: "no-store" });
+        const j = (await h.json()) as {
+          ok?: boolean;
+          users?: number;
+        };
+        if (!j.ok) {
+          msg =
+            "Databáze z aplikace nejde přečíst. Na Vercelu přidej env PRISMA_DISABLE_PREPARED_STATEMENTS=true a zkontroluj DATABASE_URL.";
+        } else if (j.users === 0) {
+          msg =
+            "V databázi nejsou žádní uživatelé. Na počítači spusť: npx prisma db seed (stejné DATABASE_URL jako na Vercelu).";
+        }
+      } catch {
+        /* nech původní msg */
+      }
+      setError(msg);
       return;
     }
     router.refresh();
