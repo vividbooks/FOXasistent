@@ -54,10 +54,10 @@ export default function LoginPage() {
         </h1>
         <p className="mt-1 text-center text-sm text-zinc-500">Přihlášení</p>
         <p className="mt-3 text-center text-xs leading-relaxed text-zinc-400">
-          <strong>admin</strong> — heslo je tvoje <code className="text-zinc-500">ADMIN_PASSWORD</code> z
-          prostředí; po jeho změně spusť lokálně{" "}
-          <code className="text-zinc-500">npx prisma db seed</code>. Nebo{" "}
-          <strong>jan</strong> / <strong>demo123</strong>.
+          Nejjednodušší: ve Vercelu nastav <code className="text-zinc-500">FOX_SHARED_PASSWORD</code> na
+          jedno heslo pro všechny → přihlásíš se jako <strong>admin</strong> nebo{" "}
+          <strong>jan</strong> s tím heslem. Jednou spusť{" "}
+          <code className="text-zinc-500">npx prisma db seed</code> proti stejné DB.
         </p>
         <form onSubmit={onSubmit} className="mt-6 space-y-4">
           <div>

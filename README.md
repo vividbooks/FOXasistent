@@ -1,44 +1,32 @@
 # FOXasistent
 
-Next.js aplikace (Fox Catering) přímo v kořeni tohoto repa — **evidence směn, polohy a nákladů na jídlo**. Databáze a soubory: **Supabase** (Postgres + Storage).
+Jednoduchá interní appka (Next.js + Supabase).
 
 ## Lokálně
 
 ```bash
-git clone https://github.com/vividbooks/FOXasistent.git
 cd FOXasistent
 cp .env.example .env
-# doplň hodnoty podle .env.example
+# doplň hesla a URL z Supabase
 npm install
 npx prisma migrate deploy
 npx prisma db seed
 npm run dev
 ```
 
-### Supabase
+## Vercel (minimum)
 
-Veřejná URL API: `NEXT_PUBLIC_SUPABASE_URL=https://hxsdhfszkvnamgmnuuuc.supabase.co`  
-V Storage bucket **`receipts`** (veřejný pro náhledy).
+1. Import repa z GitHubu, **Root Directory prázdný** (app je v kořeni).
+2. Do Environment Variables dej **stejné** jako v `.env`, hlavně:
+   - `DATABASE_URL` = **Session pooler :5432** z Supabase (ne transaction :6543, pokud to zlobí).
+   - `DIRECT_URL`, `PRISMA_DISABLE_PREPARED_STATEMENTS=true`
+   - `AUTH_SECRET`, `AUTH_URL` (tvoje `https://….vercel.app`)
+   - **`FOX_SHARED_PASSWORD`** = jedno heslo, které budete všichni používat (např. `kamosi2026`).
+3. Z počítače jednou spusť **`npx prisma db seed`** s **stejným** `DATABASE_URL` jako na Vercelu (ať v DB jsou `admin` a `jan`).
+4. Přihlášení: uživatel **`admin`** nebo **`jan`**, heslo = hodnota **`FOX_SHARED_PASSWORD`**.
 
----
-
-## Vercel (nejednodušší postup)
-
-1. [vercel.com/new](https://vercel.com/new) → Import **vividbooks/FOXasistent**.
-2. **Neměň Root Directory** — nech prázdné / kořen repa (aplikace je už v kořeni).
-3. **Environment Variables** — zkopíruj z lokálního `.env` (včetně `DATABASE_URL`, `DIRECT_URL`, **`PRISMA_DISABLE_PREPARED_STATEMENTS=true`** u Supabase pooleru, `AUTH_SECRET`, **`AUTH_URL`** = přesná produkční URL bez `/` na konci), všechny `NEXT_PUBLIC_*`, `SUPABASE_SERVICE_ROLE_KEY`.
-4. Deploy.
-
-Statická stránka z `docs/` zůstává pro GitHub Pages (přesměrování na Vercel).
-
----
+Kontrola: otevři `https://TVOJE-APP.vercel.app/api/health` — má být `"ok":true` a `"users"` alespoň 1.
 
 ## GitHub Pages
 
-`docs/index.html` může přesměrovat na tvou Vercel URL (např. `project-dusf9.vercel.app`). *Settings → Pages → Source: GitHub Actions.*
-
----
-
-## Licence
-
-Podle rozhodnutí vlastníka repozitáře.
+Složka `docs/` — často přesměruje na Vercel.
