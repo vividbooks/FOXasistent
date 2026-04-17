@@ -5,6 +5,7 @@ import {
   groupExpensesByWeekAndDay,
   type ExpenseListItem,
 } from "@/lib/group-expenses-by-calendar";
+import { expenseListPrimaryLine } from "@/lib/expense-display-title";
 import { normalizeReceiptPublicUrl } from "@/lib/receipt-storage-url";
 import { format } from "date-fns";
 import { useEffect, useMemo, useState } from "react";
@@ -259,15 +260,15 @@ export function ExpenseReceiptExplorer({
                         </span>
                         <span className="min-w-0 flex-1">
                           <span className="flex flex-wrap items-baseline justify-between gap-2">
-                            <span className="font-medium text-zinc-900">
-                              {e.user.name}
+                            <span className="line-clamp-2 min-w-0 font-medium text-zinc-900">
+                              {expenseListPrimaryLine(e)}
                             </span>
                             <span className="shrink-0 tabular-nums font-semibold text-zinc-900">
                               {formatKc(e.amountKc)}
                             </span>
                           </span>
                           <span className="mt-0.5 block text-xs text-zinc-500">
-                            {kindLabel(e.kind)}
+                            {e.user.name} · {kindLabel(e.kind)}
                             {e.receiptUrl ? " · příloha" : ""}
                           </span>
                         </span>

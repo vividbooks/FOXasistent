@@ -4,6 +4,9 @@ import { viteStaticCopy } from "vite-plugin-static-copy";
 
 // GitHub Pages: vividbooks.github.io/FOXasistent/
 export default defineConfig({
+  server: {
+    fs: { allow: [".."] },
+  },
   plugins: [
     react(),
     viteStaticCopy({

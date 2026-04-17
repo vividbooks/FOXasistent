@@ -9,6 +9,7 @@ import {
   receiptExtLower,
 } from "../lib/receipt-formats";
 import { suggestAmountKcFromText } from "../lib/suggest-amount-from-text";
+import { deriveExpenseTitleFromDocumentText } from "../../../lib/expense-display-title";
 import { configuredReceiptBucket } from "../lib/receipt-storage-url";
 import { supabase } from "../lib/supabase";
 import {
@@ -231,7 +232,7 @@ export function FoodExpenseForm({ appUserId, onSuccess, title = "Náklady na jí
       }
 
       const dateIso = new Date(date + "T12:00:00").toISOString();
-      const noteTrim = note.trim() || null;
+      let noteTrim = note.trim() || null;
 
       if (mode === "manual") {
         const amount = parseInt(amountKc, 10);
@@ -258,6 +259,10 @@ export function FoodExpenseForm({ appUserId, onSuccess, title = "Náklady na jí
       }
 
       const kind = mode === "photo" ? "RECEIPT" : docKind;
+      if (!noteTrim && extractedText.trim()) {
+        const derived = deriveExpenseTitleFromDocumentText(extractedText, kind);
+        if (derived) noteTrim = derived;
+      }
       const amount = parseInt(amountKc, 10);
       if (!amount || amount <= 0) throw new Error("Zadej částku v Kč.");
 
