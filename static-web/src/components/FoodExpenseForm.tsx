@@ -39,9 +39,21 @@ type Props = {
 
 const BUCKET = "receipts";
 
+function formatSupabaseError(e: unknown): string {
+  if (e == null) return "Neznámá chyba";
+  if (typeof e === "object" && "message" in e) {
+    const x = e as { message?: string; details?: string; hint?: string; code?: string };
+    const parts = [x.message, x.details, x.hint].filter((s) => typeof s === "string" && s.length > 0);
+    if (parts.length) return parts.join(" — ");
+  }
+  if (e instanceof Error) return e.message;
+  return String(e);
+}
+
 export function FoodExpenseForm({ appUserId, onSuccess, title = "Náklady na jídlo" }: Props) {
   const inputPhotoRef = useRef<HTMLInputElement>(null);
   const inputUploadRef = useRef<HTMLInputElement>(null);
+  const saveFeedbackRef = useRef<HTMLDivElement>(null);
 
   const [step, setStep] = useState<"pick" | "form">("pick");
   const [mode, setMode] = useState<FlowMode | null>(null);
@@ -53,6 +65,7 @@ export function FoodExpenseForm({ appUserId, onSuccess, title = "Náklady na jí
   const [note, setNote] = useState("");
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [saveInfo, setSaveInfo] = useState<string | null>(null);
   const [uploadDragActive, setUploadDragActive] = useState(false);
 
   const [extractedText, setExtractedText] = useState("");
@@ -81,16 +94,19 @@ export function FoodExpenseForm({ appUserId, onSuccess, title = "Náklady na jí
 
   const openPhoto = () => {
     setError(null);
+    setSaveInfo(null);
     inputPhotoRef.current?.click();
   };
 
   const openUpload = () => {
     setError(null);
+    setSaveInfo(null);
     inputUploadRef.current?.click();
   };
 
   const openManual = () => {
     setError(null);
+    setSaveInfo(null);
     setMode("manual");
     setStep("form");
     setFile(null);
@@ -100,6 +116,7 @@ export function FoodExpenseForm({ appUserId, onSuccess, title = "Náklady na jí
 
   const onFilePicked = (f: File | null, m: "photo" | "upload") => {
     setError(null);
+    setSaveInfo(null);
     if (!f || f.size === 0) return;
     if (f.size > 12 * 1024 * 1024) {
       setError("Soubor je větší než 12 MB.");
@@ -165,7 +182,7 @@ export function FoodExpenseForm({ appUserId, onSuccess, title = "Náklady na jí
       createdById: appUserId,
       createdAt: now,
     });
-    if (e1) throw new Error(e1.message);
+    if (e1) throw new Error(formatSupabaseError(e1));
 
     const f = opts.uploadFile;
     if (f && f.size > 0) {
@@ -185,20 +202,30 @@ export function FoodExpenseForm({ appUserId, onSuccess, title = "Náklady na jí
       });
       if (upErr) {
         await supabase.from("Expense").delete().eq("id", id);
-        throw new Error(upErr.message || "Nahrání souboru selhalo.");
+        throw new Error(formatSupabaseError(upErr) || "Nahrání souboru selhalo.");
       }
       const { data: pub } = supabase.storage.from(BUCKET).getPublicUrl(path);
       const { error: e2 } = await supabase.from("Expense").update({ receiptUrl: pub.publicUrl }).eq("id", id);
-      if (e2) throw new Error(e2.message);
+      if (e2) throw new Error(formatSupabaseError(e2));
     }
   }
+
+  useEffect(() => {
+    if (!error && !saveInfo) return;
+    saveFeedbackRef.current?.scrollIntoView({ behavior: "smooth", block: "nearest" });
+  }, [error, saveInfo]);
 
   async function submit(e: FormEvent) {
     e.preventDefault();
     setError(null);
+    setSaveInfo(null);
     setSaving(true);
 
     try {
+      if (!appUserId?.trim()) {
+        throw new Error("Chybí vazba účtu (app_user_id). Spusť npm run sync-auth a znovu se přihlas.");
+      }
+
       const dateIso = new Date(date + "T12:00:00").toISOString();
       const noteTrim = note.trim() || null;
 
@@ -214,6 +241,9 @@ export function FoodExpenseForm({ appUserId, onSuccess, title = "Náklady na jí
         });
         onSuccess();
         reset();
+        setSaveInfo(
+          "Uloženo. V seznamu účtenek zvol období (Den / Týden / Měsíc), které obsahuje datum nákupu — jinak záznam v seznamu neuvidíš.",
+        );
         return;
       }
 
@@ -236,8 +266,16 @@ export function FoodExpenseForm({ appUserId, onSuccess, title = "Náklady na jí
       });
       onSuccess();
       reset();
+      setSaveInfo(
+        "Uloženo. Účtenka a soubor jsou v databázi a bucketu „receipts“. V seznamu níže nastav období podle data nákupu.",
+      );
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Chyba");
+      const msg = err instanceof Error ? err.message : "Chyba";
+      setError(
+        /row-level security|rls|permission denied|policy/i.test(msg)
+          ? `${msg} — typicky chybí sync-auth (metadata app_user_id) nebo politika u bucketu „receipts“ (viz supabase/storage-receipts-spa.sql).`
+          : msg,
+      );
     } finally {
       setSaving(false);
     }
@@ -320,6 +358,19 @@ export function FoodExpenseForm({ appUserId, onSuccess, title = "Náklady na jí
     <section className="rounded-2xl bg-white p-5 shadow sm:p-6">
       <h2 className="text-lg font-semibold text-zinc-900">{title}</h2>
       <p className="mt-1 text-sm text-zinc-500">Vyberte způsob — pak doplníte částku a datum.</p>
+
+      <div ref={saveFeedbackRef} className="mt-4 space-y-2">
+        {saveInfo ? (
+          <p className="rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-900">
+            {saveInfo}
+          </p>
+        ) : null}
+        {error ? (
+          <p className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-800" role="alert">
+            {error}
+          </p>
+        ) : null}
+      </div>
 
       <input
         ref={inputPhotoRef}
@@ -644,12 +695,6 @@ export function FoodExpenseForm({ appUserId, onSuccess, title = "Náklady na jí
                 </details>
               </div>
             </div>
-          )}
-
-          {error && (
-            <p className="text-sm text-red-600" role="alert">
-              {error}
-            </p>
           )}
 
           {mode === "manual" && (

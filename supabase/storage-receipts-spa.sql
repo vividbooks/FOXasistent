@@ -1,5 +1,6 @@
--- Volitelně spusť v Supabase SQL Editoru, pokud nahrávání účtenek z prohlížeče hlásí RLS.
--- Bucket `receipts` už v projektu existuje.
+-- Spusť v Supabase SQL Editoru, pokud nahrávání účtenek z aplikace (SPA) hlásí RLS / permission.
+-- V Storage musí existovat bucket s id přesně `receipts` (malá písmena). Může být veřejný nebo soukromý;
+-- aplikace ukládá veřejné URL z getPublicUrl — pro soukromý bucket zvaž signed URL (zatím neřešíme).
 
 DROP POLICY IF EXISTS "fox_receipts_select_public" ON storage.objects;
 CREATE POLICY "fox_receipts_select_public" ON storage.objects FOR SELECT TO public
