@@ -15,7 +15,10 @@ async function main() {
       role: "ADMIN",
       name: "Administrátor",
     },
-    update: {},
+    update: {
+      passwordHash: hash,
+      name: "Administrátor",
+    },
   });
 
   const demoHash = await bcrypt.hash("demo123", 10);
