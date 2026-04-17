@@ -6,8 +6,10 @@ const GEMINI_RECEIPT_MODEL_ID = "gemini-2.5-flash";
 const corsHeaders: Record<string, string> = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Headers":
-    "authorization, x-client-info, apikey, content-type, accept, x-supabase-api-version",
+    "authorization, x-client-info, apikey, content-type, accept, x-supabase-api-version, prefer",
   "Access-Control-Allow-Methods": "POST, OPTIONS",
+  /** Sníží počet preflightů z prohlížeče (GitHub Pages → Supabase). */
+  "Access-Control-Max-Age": "86400",
 };
 
 const PROMPT = `Jsi OCR pro české účtenky, paragony a faktury.
@@ -47,7 +49,7 @@ function mimeFromFile(file: File, nameLower: string): string {
 
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") {
-    return new Response("ok", { headers: corsHeaders });
+    return new Response(null, { status: 204, headers: corsHeaders });
   }
 
   if (req.method !== "POST") {
