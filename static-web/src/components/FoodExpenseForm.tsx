@@ -1,5 +1,4 @@
 import { ReceiptPaper } from "./ReceiptPaper";
-import { useAuth } from "../auth/AuthContext";
 import {
   bestParsedTotalKc,
   parseReceiptFromText,
@@ -40,14 +39,7 @@ type Props = {
 
 const BUCKET = "receipts";
 
-function extractApiUrl(): string | null {
-  const raw = import.meta.env.VITE_EXTRACT_API_BASE?.trim();
-  if (!raw) return null;
-  return raw.replace(/\/$/, "");
-}
-
 export function FoodExpenseForm({ appUserId, onSuccess, title = "Náklady na jídlo" }: Props) {
-  const { session } = useAuth();
   const inputPhotoRef = useRef<HTMLInputElement>(null);
   const inputUploadRef = useRef<HTMLInputElement>(null);
 
@@ -272,21 +264,6 @@ export function FoodExpenseForm({ appUserId, onSuccess, title = "Náklady na jí
       return;
     }
 
-    const base = extractApiUrl();
-    const token = session?.access_token;
-    if (!base) {
-      setExtractLoading(false);
-      setExtractError(
-        "Pro OCR z dokladu nastav v buildu proměnnou VITE_EXTRACT_API_BASE na kořen URL tvé Next aplikace na Vercelu (např. https://muj-projekt.vercel.app).",
-      );
-      return;
-    }
-    if (!token) {
-      setExtractLoading(false);
-      setExtractError("Chybí přihlášení — zkus se odhlásit a znovu přihlásit.");
-      return;
-    }
-
     const ac = new AbortController();
     setExtractLoading(true);
     setExtractError(null);
@@ -294,44 +271,30 @@ export function FoodExpenseForm({ appUserId, onSuccess, title = "Náklady na jí
     setExtractedText("");
     setExtractPdfPages(null);
 
-    const fd = new FormData();
-    fd.set("file", file);
-
     void (async () => {
       try {
-        const r = await fetch(`${base}/api/extract-document`, {
-          method: "POST",
-          body: fd,
-          headers: { Authorization: `Bearer ${token}` },
-          signal: ac.signal,
-        });
-        const j = (await r.json()) as {
-          text?: string;
-          hint?: string;
-          error?: string;
-          pageCount?: number;
-        };
+        const { extractDocumentClient } = await import("../lib/extract-document-client");
         if (ac.signal.aborted) return;
-        if (!r.ok) {
-          setExtractError(j.error ?? "Nepodařilo se přečíst dokument.");
-          return;
-        }
+        const j = await extractDocumentClient(file);
+        if (ac.signal.aborted) return;
         const text = (j.text ?? "").trim();
         setExtractedText(text);
         setExtractHint(j.hint ?? null);
         setExtractPdfPages(
           typeof j.pageCount === "number" && j.pageCount > 0 ? j.pageCount : null,
         );
-      } catch {
+      } catch (e) {
         if (ac.signal.aborted) return;
-        setExtractError("Chyba při čtení dokumentu (síť nebo CORS na Vercelu).");
+        setExtractError(
+          e instanceof Error ? e.message : "Čtení dokumentu selhalo. Zkuste jiný soubor nebo menší velikost.",
+        );
       } finally {
         if (!ac.signal.aborted) setExtractLoading(false);
       }
     })();
 
     return () => ac.abort();
-  }, [file, mode, step, session?.access_token]);
+  }, [file, mode, step]);
 
   const parsedReceipt = useMemo(() => parseReceiptFromText(extractedText), [extractedText]);
 
@@ -641,7 +604,7 @@ export function FoodExpenseForm({ appUserId, onSuccess, title = "Náklady na jí
                   </summary>
                   <div className="border-t border-zinc-200 px-4 pb-4 pt-2">
                     <p className="text-xs text-zinc-500">
-                      OCR běží na tvé Next.js aplikaci (Vercel); z Pages se posílá soubor s Supabase tokenem.
+                      OCR běží přímo v prohlížeči (žádný další server). První načtení může stáhnout jazyková data — chvíli to trvá.
                     </p>
                     {extractLoading && (
                       <p className="mt-3 text-sm text-zinc-700">Čtu dokument… (OCR může chvíli trvat.)</p>

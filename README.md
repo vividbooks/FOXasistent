@@ -31,13 +31,13 @@ Kontrola: otevři `https://TVOJE-APP.vercel.app/api/health` — má být `"ok":t
 
 **`static-web/`** je **React + Vite SPA** napojená přímo na **Supabase** (Auth, Postgres, Storage): směny, poloha, náklady, účtenky (nahrání souboru), admin přehled, tým, sdílené účty (`TeamCredential`). Build jde do **`docs/`**, deploy řeší [`.github/workflows/pages.yml`](.github/workflows/pages.yml).
 
-**Next.js v kořeni** zůstává volitelný (např. OCR účtenek přes server `/api/extract-document` — ve statické verzi zatím zadej částku ručně).
+**Čtení účtenek a PDF** běží **přímo v prohlížeči** (Tesseract + PDF.js) — na GitHub Pages nepotřebuješ Vercel ani jiný server jen kvůli OCR. **Next.js v kořeni** zůstává volitelný pro lokální vývoj nebo plnou verzi s Prisma.
 
 ### Jednorázově na GitHubu
 
 1. **`base`** v [`static-web/vite.config.ts`](static-web/vite.config.ts) musí odpovídat názvu repa (teď `/FOXasistent/`).
 2. **Settings → Pages** → zdroj **GitHub Actions**.
-3. Konfigurace pro build: [`static-web/.env.production`](static-web/.env.production) — `VITE_SUPABASE_*` a pro **stejné OCR jako na localhostu** doplněný **`VITE_EXTRACT_API_BASE`** = kořen URL tvé Next aplikace na Vercelu (bez `/` na konci), např. `https://fox-xxx.vercel.app`. API `/api/extract-document` musí běžet na Vercelu (CORS + ověření přes Supabase Bearer token je v kódu). V GitHub Actions můžeš místo úpravy souboru nastavit repository secret **`VITE_EXTRACT_API_BASE`** (stejná hodnota jako výše).
+3. Konfigurace pro build: [`static-web/.env.production`](static-web/.env.production) — **`VITE_SUPABASE_URL`** a **`VITE_SUPABASE_ANON_KEY`** (stejné hodnoty jako u Supabase v projektu).
 
 ### Databáze, RLS, Auth
 
