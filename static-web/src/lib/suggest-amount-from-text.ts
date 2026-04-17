@@ -2,13 +2,28 @@
  * Hrubý odhad částky v Kč z textu účtenky/faktury (české formáty).
  * Používá se jen jako návrh — vždy zkontrolujte.
  */
+function stripInvoiceTotalFootnoteTail(line: string): string {
+  let s = line;
+  s = s.replace(/\s+hodnota\s+v\s+eur\b[\s\S]*$/i, "");
+  s = s.replace(/\s+kurz\b[\s\S]*$/i, "");
+  return s.trimEnd();
+}
+
 export function suggestAmountKcFromText(text: string): number | null {
   if (!text || text.length < 3) return null;
 
   const normalized = text.replace(/\u00a0/g, " ");
   for (const line of normalized.split(/\n/)) {
     if (!/celková\s+částka/i.test(line)) continue;
-    const m = line.match(
+    const prepared = stripInvoiceTotalFootnoteTail(line);
+    const direct = prepared.match(
+      /celková\s+částka\s*:?\s*(\d{1,3}(?:[ \u00a0]\d{3})*(?:,\d{1,2})?)/i,
+    );
+    if (direct) {
+      const n = parseCzechMoneyNumber(direct[1]!);
+      if (n != null && n > 0 && n < 10_000_000) return n;
+    }
+    const m = prepared.match(
       /(\d{1,3}(?:[ \u00a0]\d{3})*(?:,\d{1,2})?|\d+,\d{2})/g,
     );
     if (!m?.length) continue;

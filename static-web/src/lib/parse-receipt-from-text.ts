@@ -39,6 +39,26 @@ function lastMoneyOnLine(line: string): number | null {
   return best;
 }
 
+/**
+ * Za „Celková částka“ často následuje přepočet v EUR nebo kurz „EUR 23.800“.
+ * lastMoneyOnLine by z „23.800“ vzalo 800 — proto ořežeme poznámky vpravo.
+ */
+function stripInvoiceTotalFootnoteTail(line: string): string {
+  let s = line;
+  s = s.replace(/\s+hodnota\s+v\s+eur\b[\s\S]*$/i, "");
+  s = s.replace(/\s+kurz\b[\s\S]*$/i, "");
+  return s.trimEnd();
+}
+
+/** Částka bezprostředně za slovním označením celkové částky (CZ formát). */
+function amountRightAfterCelkovaCastka(line: string): number | null {
+  const m = line.match(
+    /celková\s+částka\s*:?\s*(\d{1,3}(?:[ \u00a0]\d{3})*(?:,\d{1,2})?)/i,
+  );
+  if (!m) return null;
+  return parsePriceToken(m[1]!);
+}
+
 /** Mezisoučet za stránku (Makro apod.) — není k úhradě. */
 function isPageSubtotalLine(line: string): boolean {
   return /strana\s+celkem|poslední\s+strana\s+celkem|celkem\s+bez\s*dph/i.test(
@@ -172,7 +192,10 @@ function parseInvoiceTableItems(lines: string[]): ReceiptItem[] {
 function extractDeclaredTotalKc(lines: string[]): number | null {
   for (const line of lines) {
     if (/celková\s+částka/i.test(line)) {
-      const n = lastMoneyOnLine(line);
+      const prepared = stripInvoiceTotalFootnoteTail(line);
+      const direct = amountRightAfterCelkovaCastka(prepared);
+      if (direct != null) return direct;
+      const n = lastMoneyOnLine(prepared);
       if (n != null) return n;
     }
   }
@@ -188,7 +211,7 @@ function extractDeclaredTotalKc(lines: string[]): number | null {
       /^\s*zaplatit(?:\s|$|:)/i.test(line) ||
       (/bezhotovostní/i.test(line) && /\d/.test(line))
     ) {
-      const n = lastMoneyOnLine(line);
+      const n = lastMoneyOnLine(stripInvoiceTotalFootnoteTail(line));
       if (n != null) candidates.push(n);
     }
   }
@@ -204,7 +227,7 @@ function extractDeclaredTotalKc(lines: string[]): number | null {
     }
 
     if (/celkem|k\s*úhradě|zaplatit|částka\s*k\s*úhradě/i.test(line)) {
-      const n = lastMoneyOnLine(line);
+      const n = lastMoneyOnLine(stripInvoiceTotalFootnoteTail(line));
       if (n != null) candidates.push(n);
     }
   }
