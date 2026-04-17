@@ -21,6 +21,8 @@ function resolveMime(file: File, nameLower: string): string {
   if (nameLower.endsWith(".webp")) return "image/webp";
   if (nameLower.endsWith(".gif")) return "image/gif";
   if (nameLower.endsWith(".jpg") || nameLower.endsWith(".jpeg")) return "image/jpeg";
+  if (nameLower.endsWith(".heic")) return "image/heic";
+  if (nameLower.endsWith(".heif")) return "image/heif";
   return "image/jpeg";
 }
 

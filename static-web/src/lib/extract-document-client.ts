@@ -58,6 +58,17 @@ function pageTextFromPdfContent(textContent: { items: readonly unknown[] }): str
   return parts.join(" ").replace(/\s+/g, " ").trim();
 }
 
+/** HEIC z iPhonu: Gemini dostává špatný výsledek, pokud pošleme binárku jako image/jpeg. Před uploadem na Edge funkci převedeme na JPEG. */
+async function fileForSupabaseGeminiExtract(file: File): Promise<File> {
+  const nameLower = file.name.toLowerCase();
+  if (!isHeicLike(file, nameLower)) return file;
+  const heic2any = (await import("heic2any")).default;
+  const out = await heic2any({ blob: file, toType: "image/jpeg", quality: 0.92 });
+  const blob = Array.isArray(out) ? out[0] : out;
+  const base = file.name.replace(/\.(heic|heif)$/i, "") || "receipt";
+  return new File([blob], `${base}.jpg`, { type: "image/jpeg" });
+}
+
 async function bitmapFromFile(file: File, nameLower: string): Promise<ImageBitmap> {
   try {
     return await createImageBitmap(file);
@@ -271,7 +282,8 @@ export async function extractDocumentClient(
 }> {
   if (opts?.supabase) {
     try {
-      const out = await extractViaSupabaseFunction(file, opts.supabase, opts.signal);
+      const upload = await fileForSupabaseGeminiExtract(file);
+      const out = await extractViaSupabaseFunction(upload, opts.supabase, opts.signal);
       const t = (out.text ?? "").trim();
       if (t.length >= 15) {
         return { ...out, text: t };

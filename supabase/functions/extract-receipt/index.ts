@@ -40,6 +40,8 @@ function mimeFromFile(file: File, nameLower: string): string {
   if (nameLower.endsWith(".jpg") || nameLower.endsWith(".jpeg")) {
     return "image/jpeg";
   }
+  if (nameLower.endsWith(".heic")) return "image/heic";
+  if (nameLower.endsWith(".heif")) return "image/heif";
   return "image/jpeg";
 }
 
