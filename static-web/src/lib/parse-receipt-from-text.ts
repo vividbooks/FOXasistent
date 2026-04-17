@@ -108,7 +108,7 @@ function parseInvoiceTableItems(lines: string[]): ReceiptItem[] {
     const amountKc = lastMoneyOnLine(trimmed);
     if (amountKc == null || amountKc <= 0 || amountKc > 250_000) continue;
 
-    let label = invoiceLabelFromRest(rest);
+    const label = invoiceLabelFromRest(rest);
     if (label.length < 2 || /^[\d\s.,]+$/.test(label)) continue;
     if (/^mj|ks|kg|l\s*$/i.test(label)) continue;
 
